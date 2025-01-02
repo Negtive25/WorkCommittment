@@ -1,0 +1,140 @@
+Product ID:1 already exists.
+Insert failed.
+-----------------------------
+Product ID:2 Inserted into Product table Successfully.
+-----------------------------
+Product ID:3 already exists.
+Insert failed.
+-----------------------------
+Product ID:4 already exists.
+Insert failed.
+-----------------------------
+Product ID:5 already exists.
+Insert failed.
+-----------------------------
+OrderID:101 Already Exists.
+
+Insert Order failed!
+-----------------------------
+OrderID:102 Already Exists.
+
+Insert Order failed!
+-----------------------------
+OrderID:103 Already Exists.
+
+Insert Order failed!
+-----------------------------
+OrderID:100 Already Exists.
+ProductID:-5 Doesn't Exists.
+Quantity:-5 should be greater than 0.
+Incorrect date format!
+Insert Order failed!
+-----------------------------
+Successfully inserted product: 2 into order: 100
+-----------------------------
+The product already exists in the order.
+-----------------------------
+The product already exists in the order.
+-----------------------------
+Successfully inserted product: 2 into order: 101
+-----------------------------
+Successfully inserted product: 3 into order: 101
+-----------------------------
+The product already exists in the order.
+-----------------------------
+Successfully inserted product: 2 into order: 102
+-----------------------------
+Successfully deleted product: 1 from order: 100
+-----------------------------
+Successfully deleted product: 2 from order: 102
+-----------------------------
+Successfully deleted order: 100
+-----------------------------
+Product ID:2 Deleted from Product table and OrderProduct table Successfully.
+-----------------------------
+Product ID:-5 not found in Product table.
+-----------------------------
+Querying Product Information...
+
+Product ID: 1	Product Name: A1	Product Price: 10.00
+-----------------------------
+Querying Product Information...
+
+Product not found.
+-----------------------------
+Querying Product Information...
+
+Product ID: 1	Product Name: A1	Product Price: 10.00
+-----------------------------
+Querying single order information...
+
+Order ID: 101
+Order Date: 2021-01-02
+Total Price: 230.00
+ProductID: 3  ProductName: C  Quantity: 2
+ProductID: 4  ProductName: D  Quantity: 3
+ProductID: 5  ProductName: E  Quantity: 1
+-----------------------------
+Querying single order information...
+
+Order not found.
+-----------------------------
+All Products Information as Follows:
+
+Product ID: 1	Product Name: A1	Product Price: 10.00
+------------------------
+Product ID: 3	Product Name: C	Product Price: 30.00
+------------------------
+Product ID: 4	Product Name: D	Product Price: 40.00
+------------------------
+Product ID: 5	Product Name: E	Product Price: 50.00
+------------------------
+
+All Orders Information as Follows:
+
+Order ID: 102
+Order Date: 2021-01-03
+Total Price: 210.00
+This order contains the following products:
+ProductID: 1  ProductName: A1  Quantity: 1
+ProductID: 5  ProductName: E  Quantity: 4
+-----------------------------
+Order ID: 104
+Order Date: 2021-01-05
+Total Price: 220.00
+This order contains the following products:
+ProductID: 5  ProductName: E  Quantity: 2
+-----------------------------
+Order ID: 101
+Order Date: 2021-01-02
+Total Price: 230.00
+This order contains the following products:
+ProductID: 3  ProductName: C  Quantity: 2
+ProductID: 4  ProductName: D  Quantity: 3
+ProductID: 5  ProductName: E  Quantity: 1
+-----------------------------
+Order ID: 103
+Order Date: 2021-01-04
+Total Price: 250.00
+This order contains the following products:
+ProductID: 3  ProductName: C  Quantity: 7
+ProductID: 4  ProductName: D  Quantity: 1
+-----------------------------
+
+New Product Name:A1  New Product Price:10.00  Updated in Product table Successfully.
+-----------------------------
+Product ID:-5 not found in Product table.Update Failed.
+-----------------------------
+Product Price should be greater than 0.
+-----------------------------
+Successfully updated order: 101
+-----------------------------
+ProductID:-2 Doesn't Exists.
+Quantity:-1 should be greater than 0.
+Order not found!
+Incorrect date format!
+
+Update Order Information failed!
+-----------------------------
+
+进程已结束，退出代码为 0
