@@ -1,18 +1,17 @@
 package com.orderManagement;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 public class Test {
-    //创建数据库方法类的实例
-    public static JdbcUtil jdbcUtil = new JdbcUtil();
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
 
         //启动数据库连接
         Class.forName("com.mysql.cj.jdbc.Driver");
-        Test.jdbcUtil.startConnection();
+        CreateJdbcUtilObject.jdbcUtil.startConnection();
 
         //设置事务隔离级别,这里设置为串行化
-        Test.jdbcUtil.getConnection().setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        CreateJdbcUtilObject.jdbcUtil.getConnection().setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
 
 //----------------------------------------------------
         //创建三张表，Product、Orders、OrderProduct
@@ -22,23 +21,23 @@ public class Test {
 
         String createProduct =
                 "CREATE TABLE IF NOT EXISTS `Product` (\n" +
-                "    ProductID INT(6) PRIMARY KEY,\n" +
-                "    ProductName VARCHAR(255) NOT NULL,\n" +
-                "    ProductPrice DECIMAL(10, 2) NOT NULL\n" +
-                ")ENGINE = InnoDB DEFAULT CHARSET=utf8;\n" ;
+                        "    ProductID INT(6) PRIMARY KEY,\n" +
+                        "    ProductName VARCHAR(255) NOT NULL,\n" +
+                        "    ProductPrice DECIMAL(10, 2) NOT NULL\n" +
+                        ")ENGINE = InnoDB DEFAULT CHARSET=utf8;\n" ;
         String createOrder=
                 "CREATE TABLE IF NOT EXISTS `Orders`(\n" +
-                "    OrderID INT(8) PRIMARY KEY,\n" +
-                "    OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,\n" +
-                "    TotalPrice DECIMAL(10, 2) NOT NULL\n" +
-                ")ENGINE = InnoDB DEFAULT CHARSET=utf8;\n";
+                        "    OrderID INT(8) PRIMARY KEY,\n" +
+                        "    OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,\n" +
+                        "    TotalPrice DECIMAL(10, 2) NOT NULL\n" +
+                        ")ENGINE = InnoDB DEFAULT CHARSET=utf8;\n";
         String createOrderProduct=
                 "CREATE TABLE IF NOT EXISTS `OrderProduct` (\n" +
-                "    OrderID INT(8) NOT NULL,\n" +
-                "    ProductID INT(6) NOT NULL,\n" +
-                "    Quantity INT(6) NOT NULL DEFAULT 0,\n" +
-                "    PRIMARY KEY (OrderID, ProductID)\n" +
-                ")ENGINE = InnoDB DEFAULT CHARSET=utf8;";
+                        "    OrderID INT(8) NOT NULL,\n" +
+                        "    ProductID INT(6) NOT NULL,\n" +
+                        "    Quantity INT(6) NOT NULL DEFAULT 0,\n" +
+                        "    PRIMARY KEY (OrderID, ProductID)\n" +
+                        ")ENGINE = InnoDB DEFAULT CHARSET=utf8;";
 
         //执行创建表语句
         TableCrud.CreateTable(createProduct);
@@ -132,6 +131,6 @@ public class Test {
 //-----------------------------------------------------
 
         //我在之前的所有方法每次执行结束后都及时释放了相关资源，这里只进行关闭数据库连接
-        Test.jdbcUtil.getConnection().close();
+        CreateJdbcUtilObject.jdbcUtil.getConnection().close();
     }
 }

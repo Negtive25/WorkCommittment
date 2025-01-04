@@ -24,7 +24,7 @@ public class ProductCrud {
         }
         //检查是否会插入重复的productID
         String sql2 = "SELECT EXISTS(SELECT 1 FROM Product WHERE ProductID = ?)";
-        ResultSet resultSet = Test.jdbcUtil.executeQuery(sql2, ProductID);
+        ResultSet resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql2, ProductID);
 
         if (resultSet.next()&& resultSet.getInt(1)==1) {
 
@@ -37,7 +37,7 @@ public class ProductCrud {
         }
 
         String sql = "INSERT INTO Product(ProductID, ProductName, ProductPrice) VALUES(?,?,?)";
-        Test.jdbcUtil.executeUpdate(sql, ProductID, ProductName, ProductPrice);
+        CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql, ProductID, ProductName, ProductPrice);
         System.out.println("Product ID:"+ProductID+" Inserted into Product table Successfully.\n-----------------------------");
     }
 
@@ -45,7 +45,7 @@ public class ProductCrud {
     public static void deleteProduct(String ProductID) throws SQLException {
         //首先删除product表中的记录
         String sql1 = "DELETE FROM Product WHERE ProductID =?";
-        int rowDeleted = Test.jdbcUtil.executeUpdate(sql1, ProductID);
+        int rowDeleted = CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql1, ProductID);
         if (rowDeleted == 0) {
 
             System.out.println(sb.append("Product ID:")
@@ -65,23 +65,26 @@ public class ProductCrud {
 
         //首先先从OrderProduct表中查找出这个产品对应的订单ID有哪些
         String sql2="SELECT OrderID FROM OrderProduct WHERE ProductID =?";
-        resultSet1 = Test.jdbcUtil.executeQuery(sql2, ProductID);
+        resultSet1 = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql2, ProductID);
 
         while (resultSet1.next()) {
             //找到该产品了对应每个的订单号
             String OrderID = resultSet1.getString("OrderID");
             //然后再一个一个删除OrderProduct表中的记录,边删边检查订单是否还有商品
             String sql3 = "DELETE FROM OrderProduct WHERE OrderID =? AND ProductID =?";
-            Test.jdbcUtil.executeUpdate(sql3, OrderID, ProductID);
+            CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql3, OrderID, ProductID);
 
             //检查订单是否还有商品
             String sql4 = "SELECT EXISTS(SELECT 1 FROM OrderProduct WHERE OrderID = ?)";
-            resultSet2 = Test.jdbcUtil.executeQuery(sql4, OrderID);
+            resultSet2 = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql4, OrderID);
 
             //如果发现订单中没有商品了，则删除Orders表中的记录
             if (!resultSet2.next()||resultSet2.getInt(1)!=1) {
                 String sql5="DELETE FROM Orders WHERE OrderID =?";
-                Test.jdbcUtil.executeUpdate(sql5, OrderID);
+                CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql5, OrderID);
+
+
+
                 continue;
             }
 
@@ -112,7 +115,7 @@ public class ProductCrud {
 
         //更新product表中的记录
         String sql1 = "UPDATE Product SET ProductName =?, ProductPrice =? WHERE ProductID =?";
-        int rowUpdated = Test.jdbcUtil.executeUpdate(sql1, ProductNewName, ProductNewPrice, ProductID);
+        int rowUpdated = CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql1, ProductNewName, ProductNewPrice, ProductID);
         if (rowUpdated == 0) {
             sb.append("Product ID:").append(ProductID).append(" not found in Product table.Update Failed.\n")
                     .append("-----------------------------");
@@ -125,7 +128,7 @@ public class ProductCrud {
         //首先先查找出这个产品对应的订单中订单号
         //然后再一个一个更新Orders表中的TotalPrice字段
         String sql2="SELECT OrderID FROM OrderProduct WHERE ProductID =?";
-        ResultSet resultSet = Test.jdbcUtil.executeQuery(sql2, ProductID);
+        ResultSet resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql2, ProductID);
         //然后再一个一个更新Orders表中的TotalPrice字段
         while (resultSet.next()) {
             String OrderID = resultSet.getString("OrderID");
@@ -145,7 +148,7 @@ public class ProductCrud {
         System.out.println("Querying Product Information...\n");
 
         String sql = "SELECT ProductID, ProductName, ProductPrice FROM Product WHERE ProductID =?";
-        ResultSet resultSet = Test.jdbcUtil.executeQuery(sql, ProductID);
+        ResultSet resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql, ProductID);
         printProductInfo(resultSet);
     }
 
@@ -164,7 +167,7 @@ public class ProductCrud {
                     "WHERE ProductName LIKE ?;";
         ProductName="%"+ProductName+"%";
 
-        ResultSet resultSet = Test.jdbcUtil.executeQuery(sql,ProductName);
+        ResultSet resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql,ProductName);
         printProductInfo(resultSet);
     }
 
@@ -193,7 +196,7 @@ public class ProductCrud {
 
         //首先检查是否会插入重复的orderID
         if(OrderID!=null){
-            resultSet = Test.jdbcUtil.executeQuery(sql1, OrderID);
+            resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql1, OrderID);
             //若存在重复的orderID，则mark=1，表示插入失败
             if (resultSet.next()&& resultSet.getInt(1)==1) {
                 mark=1;
@@ -206,7 +209,7 @@ public class ProductCrud {
         //我的productIDAndQuantity样子是这样的：{"101","2","102","1"}，表示订单中有两个商品，分别是101和102，数量分别是2和1
         //所以我从productIDAndQuantity数组中取出productID
         for (int i = 0; i < ProductIDAndQuantity.length; i += 2) {
-            resultSet = Test.jdbcUtil.executeQuery(sql2, ProductIDAndQuantity[i]);
+            resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql2, ProductIDAndQuantity[i]);
             //若存在不存在的productID，则mark=1，表示插入失败
             if (!resultSet.next()||resultSet.getInt(1)!=1) {
                 sb.append("ProductID:").append(ProductIDAndQuantity[i]).append(" Doesn't Exists.\n");
@@ -251,7 +254,7 @@ public class ProductCrud {
             sql = "SELECT ProductID,ProductName,ProductPrice FROM Product";
         }
         try {
-            resultSet = Test.jdbcUtil.executeQuery(sql);
+            resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

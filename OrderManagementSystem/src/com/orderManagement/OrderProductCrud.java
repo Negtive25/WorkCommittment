@@ -29,7 +29,7 @@ public class OrderProductCrud {
         //当插入OrderProduct记录时，若order表中不存在该订单，则要报错
         //因此需要先查看order表中是否存在该订单
         String sql = "SELECT EXISTS(SELECT 1 FROM Orders WHERE OrderID = ?)";
-        resultSet = Test.jdbcUtil.executeQuery(sql, OrderID);
+        resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql, OrderID);
         if (!resultSet.next()&&resultSet.getInt(1)!=1) {
             
             System.out.println("The order you want to insert the product into does not exist in the order table.\n-----------------------------");
@@ -40,7 +40,7 @@ public class OrderProductCrud {
         //若order表中存在该订单，则需要查看插入的商品编号是否正确的
         //查看产品编号是否存在
         sql = "SELECT EXISTS(SELECT 1 FROM Product WHERE ProductID = ?)";
-        resultSet = Test.jdbcUtil.executeQuery(sql, ProductID);
+        resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql, ProductID);
         if (!resultSet.next()&&resultSet.getInt(1)!=1) {
             
             System.out.println("The product inserted does not exist.\n-----------------------------");
@@ -49,7 +49,7 @@ public class OrderProductCrud {
 
         //查看添加的商品是否已经在订单中存在
         sql = "SELECT EXISTS(SELECT 1 FROM OrderProduct WHERE OrderID = ? AND ProductID = ?)";
-        resultSet = Test.jdbcUtil.executeQuery(sql, OrderID, ProductID);
+        resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql, OrderID, ProductID);
         if (resultSet.next() && resultSet.getInt(1) == 1) {
             
             System.out.println("The product already exists in the order.\n-----------------------------");
@@ -58,7 +58,7 @@ public class OrderProductCrud {
 
         //若首先订单存在，商品编号正确，且商品不在订单中，则可以把新增的商品插入OrderProduct表
         sql = "INSERT INTO OrderProduct(OrderID, ProductID, Quantity) VALUES(?,?,?)";
-        Test.jdbcUtil.executeUpdate(sql, OrderID, ProductID, Quantity);
+        CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql, OrderID, ProductID, Quantity);
         //插入了一条OrderProduct记录，则更新order表中的记录
 
         OrdersCrud.updateOrdersTotalPrice(OrderID);
@@ -71,11 +71,11 @@ public class OrderProductCrud {
 
         //删除OrderProduct表中的记录
         String sql1 = "DELETE FROM OrderProduct WHERE OrderID =? AND ProductID =?";
-        Test.jdbcUtil.executeUpdate(sql1, OrderID, ProductID);
+        CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql1, OrderID, ProductID);
 
         //如果删除了最后一条OrderProduct记录，则删除order表中的记录
         String sql2 = "SELECT EXISTS(SELECT 1 FROM OrderProduct WHERE OrderID = ?)";
-        resultSet = Test.jdbcUtil.executeQuery(sql2, OrderID);
+        resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql2, OrderID);
         if (!resultSet.next()&&resultSet.getInt(1)!=1) {
             
             OrdersCrud.deleteOrder(OrderID);
@@ -90,7 +90,7 @@ public class OrderProductCrud {
     //这个方法是把OrderProduct这个表中所有含有相同订单ID的记录都删除，为了更好进行订单的更新
     public static void deleteAllSameOrderID(String OrderID) throws SQLException {
         String sql1 = "DELETE FROM OrderProduct WHERE OrderID =?";
-        Test.jdbcUtil.executeUpdate(sql1, OrderID);
+        CreateJdbcUtilObject.jdbcUtil.executeUpdate(sql1, OrderID);
     }
 
     //从数据库OrderProduct表中查询某个订单号的所有商品信息
@@ -100,7 +100,7 @@ public class OrderProductCrud {
                 "INNER JOIN Product " +
                 "ON OrderProduct.ProductID = Product.ProductID " +
                 "WHERE OrderID =?;";
-        ResultSet resultSet = Test.jdbcUtil.executeQuery(sql, OrderID);
+        ResultSet resultSet = CreateJdbcUtilObject.jdbcUtil.executeQuery(sql, OrderID);
 
         while (resultSet.next()) {
             sb.append("ProductID: " + resultSet.getString(1))
