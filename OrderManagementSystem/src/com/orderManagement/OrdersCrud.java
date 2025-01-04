@@ -28,7 +28,7 @@ public class OrdersCrud {
         String sql1 = "INSERT INTO Orders(OrderID,OrderDate,TotalPrice) VALUES(?,?,?)";
 
         //首先插入一条order记录
-        JdbcUtil.executeUpdate(sql1, OrderID,OrderDate, 0);
+        Test.jdbcUtil.executeUpdate(sql1, OrderID,OrderDate, 0);
 
         //在插入订单信息后，还需要插入一条OrderProduct记录，表示订单中包含的商品数量
         //我的productIDAndQuantity样子是这样的：{"101","2","102","1"}，表示订单中有两个商品，分别是101和102，数量分别是2和1
@@ -38,7 +38,7 @@ public class OrdersCrud {
             String ProductID = ProductIDAndQuantity[i];
             String Quantity = ProductIDAndQuantity[i+1];
             //然后再插入一条OrderProduct记录
-            JdbcUtil.executeUpdate(sql2, OrderID, ProductID, Quantity);
+            Test.jdbcUtil.executeUpdate(sql2, OrderID, ProductID, Quantity);
         }
         //然后计算订单的总价
         String sql3 ="UPDATE Orders\n" +
@@ -49,17 +49,17 @@ public class OrdersCrud {
                 "    WHERE OrderProduct.OrderID = Orders.OrderID\n" +
                 ")\n" +
                 "WHERE Orders.OrderID = ?;";
-        JdbcUtil.executeUpdate(sql3,OrderID);
+        Test.jdbcUtil.executeUpdate(sql3,OrderID);
     }
 
     //从数据库order表中删除订单信息
     public static void deleteOrder(String OrderID) throws SQLException {
         //首先删除Orders表中的记录
         String sql = "DELETE FROM Orders WHERE OrderID =?";
-        JdbcUtil.executeUpdate(sql, OrderID);
+        Test.jdbcUtil.executeUpdate(sql, OrderID);
         //然后删除OrderProduct表中的记录
         String sql2 = "DELETE FROM OrderProduct WHERE OrderID =?";
-        JdbcUtil.executeUpdate(sql2, OrderID);
+        Test.jdbcUtil.executeUpdate(sql2, OrderID);
         System.out.println("Successfully deleted order: " + OrderID+"\n-----------------------------");
     }
 
@@ -74,14 +74,14 @@ public class OrdersCrud {
 
         //首先检查要更新的OrderID存不存在
         String sql0 = "SELECT EXISTS(SELECT 1 FROM Orders WHERE OrderID = ?)";
-        ResultSet resultSet=JdbcUtil.executeQuery(sql0, OrderID);
+        ResultSet resultSet=Test.jdbcUtil.executeQuery(sql0, OrderID);
         if(resultSet.next()){
             if(resultSet.getInt(1)!=1){
                 mark=1;
                 sb.append("Order not found!\n");
             }
         }
-        resultSet.close();
+
 
         //再检查要更新的productID是否正确和商品数量是否合法
         if(1==ProductCrud.checkProductExistOrRepeatedOrder(null,newProductIDAndQuantity))
@@ -114,13 +114,13 @@ public class OrdersCrud {
             String newProductID = newProductIDAndQuantity[i];
             String newQuantity = newProductIDAndQuantity[i+1];
             //然后再插入一条OrderProduct记录
-            JdbcUtil.executeUpdate(sql2, OrderID, newProductID, newQuantity);
+            Test.jdbcUtil.executeUpdate(sql2, OrderID, newProductID, newQuantity);
         }
 
         //然后更新orders表中的记录,主键OrderID不作更新，更新的字段是OrderDate,TotalPrice
         //先更新
         String sql1 = "UPDATE Orders SET OrderDate =? WHERE OrderID =?";
-        JdbcUtil.executeUpdate(sql1,NewOrderDate,OrderID);
+        Test.jdbcUtil.executeUpdate(sql1,NewOrderDate,OrderID);
         //更新订单总价
         OrdersCrud.updateOrdersTotalPrice(OrderID);
 
@@ -132,20 +132,19 @@ public class OrdersCrud {
 
     //从数据库order表中查询某个订单信息
     public static String queryOrder(String OrderID) throws SQLException {
+        String queryResult=null;
         String sql = "SELECT OrderID, OrderDate,TotalPrice FROM Orders WHERE OrderID =?";
-        ResultSet resultSet = JdbcUtil.executeQuery(sql, OrderID);
+        ResultSet resultSet = Test.jdbcUtil.executeQuery(sql, OrderID);
 
         if (resultSet.next()) {
             sb.append("Order ID: " + resultSet.getString("OrderID") + "\n")
                     .append("Order Date: " + resultSet.getString("OrderDate") + "\n")
                     .append("Total Price: " + resultSet.getString("TotalPrice") + "\n");
-            resultSet.close();
-            String result=sb.toString();
+
+            queryResult=sb.toString();
             sb.setLength(0);
-            return result;
-        } else {
-            return null;
         }
+        return queryResult;
     }
 
     //查询一个订单的所有信息，包括订单号、订单日期、总价、商品信息
@@ -187,11 +186,9 @@ public class OrdersCrud {
         else{
             sql = "SELECT OrderID, OrderDate,TotalPrice FROM Orders";
         }
-        try {
-            resultSet=JdbcUtil.executeQuery(sql);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+
+        resultSet=Test.jdbcUtil.executeQuery(sql);
+
         System.out.println("All Orders Information as Follows:\n");
         while (resultSet.next()) {
             sb.append("Order ID: " + resultSet.getString("OrderID") + "\n")
@@ -201,7 +198,7 @@ public class OrdersCrud {
                     .append(OrderProductCrud.queryOrderProduct(resultSet.getString("OrderID")))
                     .append("-----------------------------\n");
         }
-        resultSet.close();
+
         String result=sb.toString();
         sb.setLength(0);
         System.out.println(result);
@@ -215,6 +212,6 @@ public class OrdersCrud {
                 "    WHERE OrderProduct.OrderID = Orders.OrderID\n" +
                 ")\n" +
                 "WHERE Orders.OrderID = ?;";
-        JdbcUtil.executeUpdate(sql3,OrderID);;
+        Test.jdbcUtil.executeUpdate(sql3,OrderID);;
     }
 }

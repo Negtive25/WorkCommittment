@@ -3,14 +3,16 @@ package com.orderManagement;
 import java.sql.*;
 
 public class Test {
+    //创建数据库方法类的实例
+    public static JdbcUtil jdbcUtil = new JdbcUtil();
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
 
         //启动数据库连接
         Class.forName("com.mysql.cj.jdbc.Driver");
-        JdbcUtil.startConnection();
+        Test.jdbcUtil.startConnection();
 
         //设置事务隔离级别,这里设置为串行化
-        JdbcUtil.conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        Test.jdbcUtil.getConnection().setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
 
 //----------------------------------------------------
         //创建三张表，Product、Orders、OrderProduct
@@ -130,7 +132,6 @@ public class Test {
 //-----------------------------------------------------
 
         //我在之前的所有方法每次执行结束后都及时释放了相关资源，这里只进行关闭数据库连接
-        //结束数据库连接
-        JdbcUtil.conn.close();
+        Test.jdbcUtil.getConnection().close();
     }
 }

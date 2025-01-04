@@ -1,487 +1,489 @@
-### 文件：`JdbcUtil.java`
-
-#### 包声明与导入
-
-- **包**：`com.orderManagement`
-- **导入类**：
-  - `java.sql.*`：用于数据库操作的SQL相关类
-
-#### 类定义
-
-- **类名**：`JdbcUtil`
-- **成员变量**：
-  - `private static final String url`：数据库连接URL，包含数据库类型、主机地址、端口和数据库名称等信息。
-  - `private static final String username`：数据库用户名。
-  - `private static final String password`：数据库密码。
-  - `static Connection conn`：静态的数据库连接对象。
-  - `static PreparedStatement preStatement`：静态的预编译SQL语句对象。
-
-#### 方法概述
-
-1. **启动数据库连接 (`startConnection`)**
-   
-   - **功能**：建立与数据库的连接。
-   - **参数**：无。
-   - **返回值**：无。
-   - **异常**：可能抛出 `SQLException` 异常。
-   - **说明**：使用 `DriverManager.getConnection` 方法根据提供的URL、用户名和密码建立数据库连接，并将连接对象赋值给静态变量 `conn`。
-
-2. **执行更新操作 (`executeUpdate`)**
-   
-   - **功能**：执行SQL更新命令（增删改），并返回受影响的行数。
-   - **参数**：
-     - `String sql`：要执行的SQL语句。
-     - `Object... params`：可变参数列表，用于设置SQL语句中的占位符（?）的值。
-   - **返回值**：受影响的行数。
-   - **异常**：可能抛出 `SQLException` 异常。
-   - **说明**：
-     - 创建 `PreparedStatement` 对象，使用预编译SQL语句防止SQL注入攻击。
-     - 使用 `setObject` 方法为SQL语句中的每个占位符设置值。
-
-3. **执行查询操作 (`executeQuery`)**
-   
-   - **功能**：执行SQL查询命令，并返回查询结果集。
-   - **参数**：
-     - `String sql`：要执行的SQL语句。
-     - `Object... params`：可变参数列表，用于设置SQL语句中的占位符（?）的值。
-   - **返回值**：查询结果集（`ResultSet`）。
-   - **异常**：可能抛出 `SQLException` 异常。
-   - **说明**：
-     - 创建 `PreparedStatement` 对象，使用预编译SQL语句防止SQL注入攻击。
-     - 使用 `setObject` 方法为SQL语句中的每个占位符设置值。
-
-### 
-
-### 文件：`ProductCrud.java`
-
-#### 包声明与导入
-
-- **包声明**：`package com.orderManagement;`
-- **导入的类**：
-  - `java.sql.ResultSet`
-  - `java.sql.SQLException`
-
-#### 类定义
-
-- **类名**：`ProductCrud`
-- **静态成员变量**：
-  - `static StringBuilder sb = new StringBuilder();`：用于拼接查询结果。
-
-#### 方法概述
-
-1. **插入产品信息 (`insertProduct`)**
-   
-   - **功能**：向数据库中的 `Product` 表插入新产品信息。
-   - **参数**：
-     - `String ProductID`：产品ID。
-     - `String ProductName`：产品名称。
-     - `String ProductPrice`：产品价格。
-   - **逻辑**：
-     - 检查价格和ID是否合法（大于0）。
-     - 检查是否有重复的 `ProductID`。
-     - 插入成功则输出成功信息，否则输出失败原因。
-
-2. **删除产品信息 (`deleteProduct`)**
-   
-   - **功能**：从 `Product` 表中删除指定的产品信息，并同时删除所有相关订单中的该产品信息。
-   - **参数**：
-     - `String ProductID`：要删除的产品ID。
-   - **逻辑**：
-     - 删除 `Product` 表中的记录。
-     - 查找并删除 `OrderProduct` 表中对应的记录。
-     - 如果某个订单没有其他商品，则删除该订单。
-     - 更新受影响订单的总价。
-     - 输出操作结果。
-
-3. **更新产品信息 (`updateProduct`)**
-   
-   - **功能**：更新 `Product` 表中的产品信息，并更新所有相关订单的总价。
-   - **参数**：
-     - `String ProductID`：要更新的产品ID。
-     - `String ProductNewName`：新的产品名称。
-     - `String ProductNewPrice`：新的产品价格。
-   - **逻辑**：
-     - 检查新价格是否合法。
-     - 更新 `Product` 表中的记录。
-     - 更新包含该产品的订单的总价。
-     - 输出操作结果。
-
-4. **按ID查询产品信息 (`queryProductByID`)**
-   
-   - **功能**：根据产品ID查询产品信息。
-   - **参数**：
-     - `String ProductID`：要查询的产品ID。
-   - **逻辑**：
-     - 执行查询并调用 `printProductInfo` 方法打印结果。
-
-5. **按名称查询产品信息 (`queryProductByName`)**
-   
-   - **功能**：根据产品名称查询产品信息，支持完全匹配和模糊匹配。
-   - **参数**：
-     - `String ProductName`：要查询的产品名称。
-     - `int matchRule`：匹配规则（0为完全匹配，1为模糊匹配）。
-   - **逻辑**：
-     - 构建SQL查询语句并执行。
-     - 调用 `printProductInfo` 方法打印结果。
-
-6. **打印查询到的产品信息 (`printProductInfo`)**
-   
-   - **功能**：格式化并打印查询到的产品信息。
-   - **参数**：
-     - `ResultSet resultSet`：查询结果集。
-   - **逻辑**：
-     - 遍历结果集并打印每条记录。
-
-7. **检查产品存在或重复订单 (`checkProductExistOrRepeatedOrder`)**
-   
-   - **功能**：检查订单ID是否重复以及产品ID是否存在且数量是否合法。
-   - **参数**：
-     - `String OrderID`：订单ID。
-     - `String... ProductIDAndQuantity`：产品ID及其数量。
-   - **逻辑**：
-     - 检查订单ID是否已存在。
-     - 检查每个产品ID是否存在且数量合法。
-     - 返回检查结果标志。
-
-8. **排序并显示产品信息 (`sortProductAndDisplay`)**
-   
-   - **功能**：根据指定规则对产品进行排序并显示。
-   - **参数**：
-     - `int sortRule`：排序规则（1为按价格，2为按名称）。
-     - `int descOrAsc`：排序顺序（1为降序，2为升序）。
-   - **逻辑**：
-     - 构建SQL查询语句并执行。
-     - 打印排序后的结果。
-
-
-
-### 文件：`OrdersCrud.java`
-
-#### 包声明与导入
-
-- **包**：`com.orderManagement`
-- **导入类**：
-  - `java.sql.ResultSet`
-  - `java.sql.SQLException`
-
-#### 类定义
-
-- **类名**：`OrdersCrud`
-- **静态成员变量**：
-  - `static StringBuilder sb = new StringBuilder();`：用于拼接查询结果。
-
-#### 方法概述
-
-1. **插入订单信息 (`insertOrder`)**
-   
-   - **功能**：向数据库的 `Orders` 表中插入订单信息，并同时在 `OrderProduct` 表中插入订单包含的商品及其数量。
-   - **参数**：
-     - `String OrderID`：订单编号。
-     - `String OrderDate`：订单日期。
-     - `String... ProductIDAndQuantity`：可变参数，表示商品编号和数量（如："101", "2", "102", "1"）。
-   - **逻辑**：
-     - 检查是否有重复的订单编号、不存在的商品编号或不合法的商品数量。
-     - 检查日期格式是否正确。
-     - 插入订单记录到 `Orders` 表。
-     - 插入订单商品记录到 `OrderProduct` 表。
-     - 计算并更新订单总价。
-
-2. **删除订单信息 (`deleteOrder`)**
-   
-   - **功能**：从数据库的 `Orders` 和 `OrderProduct` 表中删除指定订单的所有信息。
-   - **参数**：
-     - `String OrderID`：订单编号。
-   - **逻辑**：
-     - 删除 `Orders` 表中的订单记录。
-     - 删除 `OrderProduct` 表中的相关商品记录。
-
-3. **更新订单信息 (`updateOrder`)**
-   
-   - **功能**：更新数据库中指定订单的信息，包括订单日期和商品数量。
-   - **参数**：
-     - `String OrderID`：订单编号。
-     - `String NewOrderDate`：新的订单日期。
-     - `String... newProductIDAndQuantity`：可变参数，表示新的商品编号和数量。
-   - **逻辑**：
-     - 检查订单是否存在、商品编号是否正确、商品数量是否合法以及日期格式是否正确。
-     - 更新 `OrderProduct` 表中的商品记录。
-     - 更新 `Orders` 表中的订单日期和总价。
-
-4. **查询订单信息 (`queryOrder`)**
-   
-   - **功能**：从数据库的 `Orders` 表中查询指定订单的基本信息（订单号、订单日期、总价）。
-   - **参数**：
-     - `String OrderID`：订单编号。
-   - **返回值**：订单信息字符串，如果未找到则返回 `null`。
-
-5. **查询单个订单的详细信息 (`querySingleOrderID`)**
-   
-   - **功能**：查询并打印指定订单的详细信息，包括订单号、订单日期、总价和商品信息。
-   - **参数**：
-     - `String OrderID`：订单编号。
-
-6. **排序并显示订单信息 (`sortOrderAndDisplay`)**
-   
-   - **功能**：根据指定规则对订单进行排序并显示所有订单信息。
-   - **参数**：
-     - `int sortRule`：排序规则（0：不排序，1：按价格排序，2：按下单时间排序）。
-     - `int descOrAsc`：排序顺序（1：降序，2：升序）。
-   - **逻辑**：
-     - 根据排序规则构建 SQL 查询语句。
-     - 执行查询并打印所有订单信息及其包含的商品。
-
-7. **更新订单总价 (`updateOrdersTotalPrice`)**
-   
-   - **功能**：根据订单中的商品信息更新订单的总价。
-   - **参数**：
-     - `String OrderID`：订单编号。
-   - **逻辑**：
-     - 使用子查询计算订单总价并更新 `Orders` 表中的 `TotalPrice` 字段。
-
-
-
-### 文件：`OrderProductCrud.java`
-
-#### 包声明与导入
-
-- **包**：`com.orderManagement`
-- **导入类**：
-  - `java.sql.ResultSet`
-  - `java.sql.SQLException`
-
-#### 类定义
-
-- **类名**：`OrderProductCrud`
-- **静态成员变量**：
-  - `static StringBuilder sb = new StringBuilder();`：用于拼接查询结果。
-
-#### 表设计说明
-
-`OrderProduct` 表是创建的一个额外的关联表，用来表示一个订单中存在的多个商品之间的关系。表结构如下：
-
-- **OrderID**（作为外键关联到 `Orders` 表）
-- **ProductID**（作为外键关联到 `Product` 表）
-- **Quantity**（商品数量）
-
-示例数据：
-| OrderID | ProductID | Quantity |
-|---------|-----------|----------|
-| 1        | 101      | 2         |
-| 1        | 102      | 1         |
-| 2        | 101      | 1         |
-| 2        | 103      | 3         |
-
-每个订单可以有多个商品，因此对这个表的增删改查操作相当于对订单包含的商品进行增删改查操作。
-
-#### 方法概述
-
-1. **插入订单商品记录 (`insertOrderProduct`)**
-   
-   - **功能**：往数据库 `OrderProduct` 表中插入一条记录，相当于向订单中添加一个商品。
-   - **参数**：
-     - `String OrderID`：订单ID
-     - `String ProductID`：商品ID
-     - `String Quantity`：商品数量
-   - **逻辑**：
-     - 检查 `Orders` 表中是否存在该订单。
-     - 检查 `Product` 表中是否存在该商品。
-     - 检查该商品是否已经在订单中存在。
-     - 如果以上条件都满足，则插入新记录，并更新 `Orders` 表中的总价。
-   - **输出**：成功或失败信息。
-
-2. **删除订单商品记录 (`deleteOrderProduct`)**
-   
-   - **功能**：从数据库 `OrderProduct` 表中删除一条记录，相当于从订单中删除一个商品。
-   - **参数**：
-     - `String OrderID`：订单ID
-     - `String ProductID`：商品ID
-   - **逻辑**：
-     - 删除 `OrderProduct` 表中的记录。
-     - 如果删除了最后一条记录，则删除 `Orders` 表中的订单记录。
-     - 如果订单中还有其他商品，重新计算订单总价。
-   - **输出**：成功或失败信息。
-
-3. **删除所有相同订单ID的记录 (`deleteAllSameOrderID`)**
-   
-   - **功能**：把 `OrderProduct` 表中所有含有相同订单ID的记录都删除，以便更好地进行订单更新。
-   - **参数**：
-     - `String OrderID`：订单ID
-   - **逻辑**：
-     - 删除 `OrderProduct` 表中所有匹配的记录。
-
-4. **查询订单商品信息 (`queryOrderProduct`)**
-   
-   - **功能**：从数据库 `OrderProduct` 表中查询某个订单号的所有商品信息。
-   - **参数**：
-     - `String OrderID`：订单ID
-   - **逻辑**：
-     - 使用 SQL 查询语句，通过内连接获取商品名称和数量。
-     - 将查询结果拼接成字符串返回。
-   - **返回值**：包含商品信息的字符串。
-
-
-
-### 文件：`CheckDateFormat.java`
-
-#### 包声明与导入
-
-- **包**：`com.orderManagement`
-
-#### 类定义
-
-- **类名**：`CheckDateFormat`
-
-#### 方法概述
-
-- **方法名**：`isValidDate(String date)`
-  - **功能描述**：
-    - 检查给定的日期字符串是否符合特定格式和有效范围。
-  - **具体步骤**：
-    1. **字符检查**：遍历日期字符串中的每个字符，确保它们只包含数字和连字符（`-`）。如果遇到其他字符，则返回 `false`。
-    2. **分隔符检查**：使用连字符（`-`）将日期字符串分割成三部分（年、月、日），并检查分割后的数组长度是否为3。如果不是，则返回 `false`。
-    3. **类型转换与验证**：
-       - 将分割后的年、月、日部分分别转换为 `double` 和 `int` 类型。
-       - 检查年、月、日是否为整数（即没有小数部分）。如果有小数部分，则返回 `false`。
-    4. **范围验证**：
-       - 年份必须在1900到2100之间。
-       - 月份必须在1到12之间。
-       - 日期必须在1到31之间。
-  - **返回值**：
-    - 如果所有检查都通过，则返回 `true`，表示日期格式有效；否则返回 `false`。
-
-
-
-- 该方法仅对日期的基本格式和范围进行了简单验证，但未考虑每个月的具体天数（例如2月最多29天或30天等特殊情况）。
-
-
-
-### 文件：`TableCrud.java`
-
-#### 包声明与导入
-
-- **包**：`com.orderManagement`
-- **导入类**：`java.sql.SQLException`
-
-#### 类定义
-
-- **类名**：`TableCrud`
-- **功能描述**：该类用于对 `Orders`、`Product` 和 `OrderProduct` 三个表进行创建、插入、删除、更新、查询和排序等操作。每个方法都包含事务处理，以确保数据的一致性。
-
-#### 方法概述
-
-1. **创建表 (`CreateTable`)**
-   
-   - **功能**：执行创建表的SQL语句。
-   - **参数**：
-     - `String tableSql`：创建表的SQL语句。
-   - **事务处理**：开启事务，执行SQL语句后提交事务；若发生异常则回滚事务并抛出异常。
-
-2. **插入产品数据 (`InsertProduct`)**
-   
-   - **功能**：调用 `ProductCrud.insertProduct` 方法插入产品数据。
-   - **参数**：
-     - `String ProductID`：产品ID。
-     - `String ProductName`：产品名称。
-     - `String ProductPrice`：产品价格。
-   - **事务处理**：同上。
-
-3. **插入订单数据 (`InsertOrder`)**
-   
-   - **功能**：调用 `OrdersCrud.insertOrder` 方法插入订单数据。
-   - **参数**：
-     - `String OrderID`：订单ID。
-     - `String OrderDate`：订单日期。
-     - `String... ProductIDAndQuantity`：可变参数，表示产品ID和数量。
-   - **事务处理**：同上。
-
-4. **插入订单商品数据 (`InsertOrderProduct`)**
-   
-   - **功能**：调用 `OrderProductCrud.insertOrderProduct` 方法插入订单商品数据。
-   - **参数**：
-     - `String OrderID`：订单ID。
-     - `String ProductID`：产品ID。
-     - `String Quantity`：数量。
-   - **事务处理**：同上。
-
-5. **删除订单中某个商品数据 (`DeleteOrderProduct`)**
-   
-   - **功能**：调用 `OrderProductCrud.deleteOrderProduct` 方法删除订单中的某个商品数据。
-   - **参数**：
-     - `String OrderID`：订单ID。
-     - `String ProductID`：产品ID。
-   - **事务处理**：同上。
-
-6. **删除整个订单数据 (`DeleteOrder`)**
-   
-   - **功能**：调用 `OrdersCrud.deleteOrder` 方法删除整个订单数据。
-   - **参数**：
-     - `String OrderID`：订单ID。
-   - **事务处理**：同上。
-
-7. **删除产品 (`DeleteProduct`)**
-   
-   - **功能**：调用 `ProductCrud.deleteProduct` 方法删除产品，并随带删除订单内相关商品数据，更新订单总价。
-   - **参数**：
-     - `String ProductID`：产品ID。
-   - **事务处理**：同上。
-
-8. **查询存在产品数据 (`QueryProductByID`)**
-   
-   - **功能**：调用 `ProductCrud.queryProductByID` 方法查询指定ID的产品数据。
-   - **参数**：
-     - `String ProductID`：产品ID。
-   - **事务处理**：同上。
-
-9. **查询存在订单数据 (`QueryOrderByID`)**
-   
-   - **功能**：调用 `OrdersCrud.querySingleOrderID` 方法查询指定ID的订单数据。
-   - **参数**：
-     - `String OrderID`：订单ID。
-   - **事务处理**：同上。
-
-10. **商品排序并显示 (`SortProductAndDisplay`)**
-    
-    - **功能**：调用 `ProductCrud.sortProductAndDisplay` 方法对商品进行排序并显示。
-    - **参数**：
-      - `int sortRule`：排序规则（0代表不排序，1代表按价格排序，2代表按名字排序）。
-      - `int descOrAsc`：排序顺序（1代表降序，2代表升序）。
-    - **事务处理**：同上。
-
-11. **订单排序并显示 (`SortOrderAndDisplay`)**
-    
-    - **功能**：调用 `OrdersCrud.sortOrderAndDisplay` 方法对订单进行排序并显示。
-    - **参数**：
-      - `int sortRule`：排序规则（1代表按价格排序，2代表按日期排序）。
-      - `int descOrAsc`：排序顺序（1代表降序，2代表升序）。
-    - **事务处理**：同上。
-
-12. **更新产品数据 (`UpdateProduct`)**
-    
-    - **功能**：调用 `ProductCrud.updateProduct` 方法更新产品数据。
-    - **参数**：
-      - `String ProductID`：产品ID。
-      - `String ProductNewName`：新产品名称。
-      - `String ProductNewPrice`：新产品价格。
-    - **事务处理**：同上。
-
-13. **更新订单数据 (`UpdateOrder`)**
-    
-    - **功能**：调用 `OrdersCrud.updateOrder` 方法更新订单数据。
-    - **参数**：
-      - `String OrderID`：订单ID。
-      - `String NewOrderDate`：新订单日期。
-      - `String... newProductIDAndQuantity`：可变参数，表示新的产品ID和数量。
-    - **事务处理**：同上。
-
-14. **通过产品名字查询产品数据 (`QueryProductByName`)**
-    
-    - **功能**：调用 `ProductCrud.queryProductByName` 方法通过产品名字查询产品数据，支持模糊查询。
-    - **参数**：
-      - `String ProductName`：产品名称。
-      - `int matchRule`：匹配规则（0代表完全匹配，1代表模糊匹配）。
-    - **事务处理**：同上。
-
-
-
-- 每个方法都使用了事务管理，确保在数据库操作失败时能够回滚，保证数据一致性。
-- 依赖于 `JdbcUtil` 类提供的数据库连接和SQL执行功能。
+以下是 `JdbcUtil.java` 文件中各个函数的详细解释：
+
+### 1. `startConnection()`
+
+- **功能**: 建立与数据库的连接。
+- **参数**: 无。
+- **逻辑**:
+  - 使用静态变量 `url`, `username`, `password` 创建数据库连接，并将其赋值给成员变量 `conn`。
+  - 如果连接失败，抛出 `SQLException`。
+
+### 2. `getConnection()`
+
+- **功能**: 获取当前的数据库连接对象。
+- **参数**: 无。
+- **逻辑**:
+  - 返回成员变量 `conn`，即当前的数据库连接对象。
+
+### 3. `executeUpdate(String sql, Object... params)`
+
+- **功能**: 执行 SQL 更新操作（如插入、更新、删除）。
+- **参数**:
+  - `String sql`: 要执行的 SQL 语句。
+  - `Object... params`: 可变参数，用于设置 SQL 语句中的占位符。
+- **逻辑**:
+  - 创建一个 `PreparedStatement` 对象 `preStatementForUpdate`，并使用传入的 SQL 语句进行预编译。
+  - 使用 `setObject` 方法为 SQL 语句中的每个占位符设置值。
+  - 执行更新操作，返回受影响的行数。
+  - 关闭 `PreparedStatement` 对象，释放资源。
+
+### 4. `executeQuery(String sql, Object... params)`
+
+- **功能**: 执行 SQL 查询操作，并返回查询结果。
+- **参数**:
+  - `String sql`: 要执行的 SQL 查询语句。
+  - `Object... params`: 可变参数，用于设置 SQL 语句中的占位符。
+- **逻辑**:
+  - 查找第一个可用的索引 `useThis`，用于存储 `PreparedStatement` 和 `ResultSet`。
+  - 创建一个 `PreparedStatement` 对象 `preStatementForQuery[useThis]`，并使用传入的 SQL 查询语句进行预编译。
+  - 使用 `setObject` 方法为 SQL 语句中的每个占位符设置值。
+  - 执行查询操作，并将结果存储在 `resultSet[useThis]` 中。
+  - 返回 `ResultSet` 对象，供调用者处理查询结果。
+
+### 5. `releaseSources()`
+
+- **功能**: 释放所有已使用的数据库资源。
+- **参数**: 无。
+- **逻辑**:
+  - 遍历 `resultSet` 和 `preStatementForQuery` 数组。
+  - 如果某个 `ResultSet` 或 `PreparedStatement` 不为 `null`，则关闭它们，释放资源。
+  - 这个方法通常在`Table.Crud`类中每次执行完数据库命令或事务回滚之后调用，确保资源及时释放，避免内存泄漏。
+
+### 总结
+
+`JdbcUtil` 类封装了与数据库交互的基本操作，包括建立连接、执行更新和查询操作以及释放资源。通过使用 `PreparedStatement` 和 `ResultSet` 数组，该类支持多个并发查询操作，并且提供了防止 SQL 注入的安全措施。
+
+
+
+
+
+
+
+以下是 `ProductCrud.java` 文件中各个函数的详细解释：
+
+### 1. `insertProduct(String ProductID, String ProductName, String ProductPrice)`
+
+- **功能**: 向数据库 `product` 表中插入产品信息。
+- **参数**:
+  - `String ProductID`: 产品的唯一标识符。
+  - `String ProductName`: 产品的名称。
+  - `String ProductPrice`: 产品的价格。
+- **逻辑**:
+  - 检查价格和产品 ID 是否合法（必须大于 0）。
+  - 检查是否已经存在相同的产品 ID，如果存在则插入失败。
+  - 如果所有检查通过，则执行插入操作，并输出成功信息；否则输出失败信息。
+
+### 2. `deleteProduct(String ProductID)`
+
+- **功能**: 从数据库 `product` 表中删除指定的产品信息，并同时删除相关订单中的该产品信息。
+- **参数**:
+  - `String ProductID`: 要删除的产品的唯一标识符。
+- **逻辑**:
+  - 首先删除 `product` 表中的记录，如果找不到该产品则输出未找到信息。
+  - 查找并删除 `OrderProduct` 表中与该产品相关的记录。
+  - 如果某个订单中仅剩一个商品且被删除，则删除对应的 `Orders` 表中的记录。
+  - 更新相关订单的总价。
+  - 输出删除成功信息。
+
+### 3. `updateProduct(String ProductID, String ProductNewName, String ProductNewPrice)`
+
+- **功能**: 更新数据库 `product` 表中的产品信息，并更新相关订单的总价。
+- **参数**:
+  - `String ProductID`: 要更新的产品的唯一标识符。
+  - `String ProductNewName`: 新的产品名称。
+  - `String ProductNewPrice`: 新的产品价格。
+- **逻辑**:
+  - 检查新价格是否合法（必须大于 0）。
+  - 更新 `product` 表中的记录，如果找不到该产品则输出未找到信息。
+  - 查找并更新包含该产品的订单的总价。
+  - 输出更新成功信息。
+
+### 4. `queryProductByID(String ProductID)`
+
+- **功能**: 根据产品 ID 查询数据库 `product` 表中的产品信息。
+- **参数**:
+  - `String ProductID`: 要查询的产品的唯一标识符。
+- **逻辑**:
+  - 执行查询操作，如果找到匹配的产品则打印其信息；否则输出未找到信息。
+
+### 5. `queryProductByName(String ProductName, int matchRule)`
+
+- **功能**: 根据产品名称查询数据库 `product` 表中的产品信息，支持模糊查询。
+- **参数**:
+  - `String ProductName`: 要查询的产品名称。
+  - `int matchRule`: 匹配规则，0 表示完全匹配，1 表示模糊匹配。
+- **逻辑**:
+  - 根据匹配规则构建 SQL 查询语句。
+  - 执行查询操作，如果找到匹配的产品则打印其信息；否则输出未找到信息。
+
+### 6. `printProductInfo(ResultSet resultSet)`
+
+- **功能**: 打印查询到的产品信息。
+- **参数**:
+  - `ResultSet resultSet`: 包含查询结果的 `ResultSet` 对象。
+- **逻辑**:
+  - 遍历 `ResultSet` 并将每个产品的信息拼接成字符串后打印；如果没有找到任何产品则输出未找到信息。
+
+### 7. `checkProductExistOrRepeatedOrder(String OrderID, String... ProductIDAndQuantity)`
+
+- **功能**: 检查订单 ID 是否重复以及产品 ID 是否存在，并验证数量合法性。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String... ProductIDAndQuantity`: 可变参数，格式为 `{ProductID1, Quantity1, ProductID2, Quantity2, ...}`。
+- **逻辑**:
+  - 检查是否存在重复的订单 ID。
+  - 检查每个产品 ID 是否存在以及数量是否合法。
+  - 如果有任何一项检查不通过，则输出错误信息并返回 1；否则返回 0。
+
+### 8. `sortProductAndDisplay(int sortRule, int descOrAsc)`
+
+- **功能**: 根据指定规则对产品进行排序并显示。
+- **参数**:
+  - `int sortRule`: 排序规则，1 表示按价格排序，2 表示按名称排序，0 表示不排序。
+  - `int descOrAsc`: 排序顺序，1 表示降序，2 表示升序。
+- **逻辑**:
+  - 根据排序规则和顺序构建 SQL 查询语句。
+  - 执行查询操作并遍历结果集，将每个产品的信息拼接成字符串后打印。
+
+### 总结
+
+`ProductCrud` 类封装了对 `product` 表的增删改查操作，包括插入、删除、更新、查询和排序。此外，它还处理了与订单表之间的关联操作，确保在修改或删除产品时，相关订单的信息也得到同步更新。
+
+
+
+
+
+
+
+以下是 `OrdersCrud.java` 文件中各个函数的详细解释：
+
+### 1. `insertOrder(String OrderID, String OrderDate, String... ProductIDAndQuantity)`
+
+- **功能**: 向数据库 `Orders` 表中插入订单信息，并同时插入 `OrderProduct` 表，表示订单中包含的商品和商品数量。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String OrderDate`: 订单日期。
+  - `String... ProductIDAndQuantity`: 可变参数，格式为 `{ProductID1, Quantity1, ProductID2, Quantity2, ...}`。
+- **逻辑**:
+  - 检查是否有重复的订单 ID、不存在的产品 ID 和不合法的商品数量。
+  - 检查日期格式是否正确。
+  - 如果所有检查通过，则先插入一条 `Orders` 记录（总价初始为 0），然后插入多条 `OrderProduct` 记录。
+  - 最后更新订单的总价。
+
+### 2. `deleteOrder(String OrderID)`
+
+- **功能**: 从数据库 `Orders` 表中删除指定的订单信息，并同时删除 `OrderProduct` 表中的相关记录。
+- **参数**:
+  - `String OrderID`: 要删除的订单的唯一标识符。
+- **逻辑**:
+  - 删除 `Orders` 表中的记录。
+  - 删除 `OrderProduct` 表中与该订单相关的记录。
+  - 输出删除成功信息。
+
+### 3. `updateOrder(String OrderID, String NewOrderDate, String... newProductIDAndQuantity)`
+
+- **功能**: 更新数据库 `Orders` 表中的一条订单信息，包括订单日期和商品数量。
+- **参数**:
+  - `String OrderID`: 要更新的订单的唯一标识符。
+  - `String NewOrderDate`: 新的订单日期。
+  - `String... newProductIDAndQuantity`: 可变参数，格式为 `{newProductID1, newQuantity1, newProductID2, newQuantity2, ...}`。
+- **逻辑**:
+  - 检查要更新的订单是否存在。
+  - 检查新的产品 ID 是否存在以及商品数量是否合法。
+  - 检查新日期格式是否正确。
+  - 如果所有检查通过，则删除 `OrderProduct` 表中与该订单相关的所有记录，再插入新的 `OrderProduct` 记录。
+  - 更新 `Orders` 表中的订单日期和总价。
+  - 输出更新成功信息。
+
+### 4. `queryOrder(String OrderID)`
+
+- **功能**: 从数据库 `Orders` 表中查询某个订单的基本信息（订单号、订单日期、总价）。
+- **参数**:
+  - `String OrderID`: 要查询的订单的唯一标识符。
+- **逻辑**:
+  - 执行查询操作，如果找到匹配的订单则返回其基本信息；否则返回 `null`。
+
+### 5. `querySingleOrderID(String OrderID)`
+
+- **功能**: 查询一个订单的所有信息，包括订单号、订单日期、总价和商品信息。
+- **参数**:
+  - `String OrderID`: 要查询的订单的唯一标识符。
+- **逻辑**:
+  - 调用 `queryOrder` 方法获取订单基本信息。
+  - 如果找不到订单则输出未找到信息。
+  - 否则调用 `OrderProductCrud.queryOrderProduct` 获取订单中的商品信息并一起打印。
+
+### 6. `sortOrderAndDisplay(int sortRule, int descOrAsc)`
+
+- **功能**: 根据指定规则对订单进行排序并显示。
+- **参数**:
+  - `int sortRule`: 排序规则，1 表示按总价排序，2 表示按下单时间排序，0 表示不排序。
+  - `int descOrAsc`: 排序顺序，1 表示降序，2 表示升序。
+- **逻辑**:
+  - 根据排序规则和顺序构建 SQL 查询语句。
+  - 执行查询操作并遍历结果集，将每个订单的信息拼接成字符串后打印，包括订单中的商品信息。
+
+### 7. `updateOrdersTotalPrice(String OrderID)`
+
+- **功能**: 更新指定订单的总价。
+- **参数**:
+  - `String OrderID`: 要更新的订单的唯一标识符。
+- **逻辑**:
+  - 使用 SQL 查询计算订单中所有商品的总价，并更新 `Orders` 表中的 `TotalPrice` 字段。
+
+### 总结
+
+`OrdersCrud` 类封装了对 `Orders` 表的增删改查操作，包括插入、删除、更新、查询和排序。此外，它还处理了与 `OrderProduct` 表之间的关联操作，确保在修改或删除订单时，相关商品的信息也得到同步更新。
+
+
+
+
+
+
+
+以下是 `OrderProductCrud.java` 文件中各个函数的详细解释：
+
+### 1. `insertOrderProduct(String OrderID, String ProductID, String Quantity)`
+
+- **功能**: 向数据库 `OrderProduct` 表中插入一条记录，相当于向订单中添加一个商品。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String ProductID`: 商品的唯一标识符。
+  - `String Quantity`: 商品的数量。
+- **逻辑**:
+  - 检查 `Orders` 表中是否存在该订单，如果不存在则输出错误信息并返回。
+  - 检查 `Product` 表中是否存在该商品，如果不存在则输出错误信息并返回。
+  - 检查该商品是否已经存在于订单中，如果存在则输出错误信息并返回。
+  - 如果所有检查通过，则插入一条 `OrderProduct` 记录，并更新订单的总价。
+  - 输出成功信息。
+
+### 2. `deleteOrderProduct(String OrderID, String ProductID)`
+
+- **功能**: 从数据库 `OrderProduct` 表中删除一条记录，相当于从订单中删除一个商品。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String ProductID`: 商品的唯一标识符。
+- **逻辑**:
+  - 删除 `OrderProduct` 表中的记录。
+  - 检查订单中是否还有其他商品：
+    - 如果没有其他商品，则删除 `Orders` 表中的记录。
+    - 如果还有其他商品，则重新计算订单的总价。
+  - 输出删除成功信息。
+
+### 3. `deleteAllSameOrderID(String OrderID)`
+
+- **功能**: 删除 `OrderProduct` 表中所有含有相同订单 ID 的记录，以便更好地进行订单更新。
+- **参数**:
+  - `String OrderID`: 要删除的订单的唯一标识符。
+- **逻辑**:
+  - 执行删除操作，删除 `OrderProduct` 表中所有与指定订单 ID 相关的记录。
+
+### 4. `queryOrderProduct(String OrderID)`
+
+- **功能**: 查询某个订单号的所有商品信息。
+- **参数**:
+  - `String OrderID`: 要查询的订单的唯一标识符。
+- **逻辑**:
+  - 使用 SQL 查询语句，连接 `OrderProduct` 和 `Product` 表，获取订单中所有商品的信息（包括商品 ID、名称和数量）。
+  - 遍历查询结果集，将每个商品的信息拼接成字符串。
+  - 返回拼接后的字符串，并重置 `StringBuilder`。
+
+### 总结
+
+`OrderProductCrud` 类封装了对 `OrderProduct` 表的增删改查操作，确保在修改或删除订单中的商品时，相关订单的信息也得到同步更新。具体操作包括：
+
+- 插入商品到订单中。
+- 删除订单中的商品。
+- 删除订单中所有商品。
+- 查询订单中的所有商品信息。
+
+这些操作确保了订单和商品之间的关联关系在数据库中保持一致，并且在每次修改后及时更新订单的总价。
+
+
+
+
+
+
+
+
+
+以下是 `TableCrud.java` 文件中各个函数的详细解释：
+
+### 1. `CreateTable(String tableSql)`
+
+- **功能**: 创建数据库表。
+- **参数**:
+  - `String tableSql`: 创建表的 SQL 语句。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 执行创建表的 SQL 语句。
+  - 提交事务；如果发生异常，则回滚事务并抛出异常。
+
+### 2. `InsertProduct(String ProductID, String ProductName, String ProductPrice)`
+
+- **功能**: 插入产品数据到 `Product` 表。
+- **参数**:
+  - `String ProductID`: 产品的唯一标识符。
+  - `String ProductName`: 产品的名称。
+  - `String ProductPrice`: 产品的价格。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `ProductCrud.insertProduct` 方法插入产品数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 3. `InsertOrder(String OrderID, String OrderDate, String... ProductIDAndQuantity)`
+
+- **功能**: 插入订单数据到 `Orders` 和 `OrderProduct` 表。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String OrderDate`: 订单日期。
+  - `String... ProductIDAndQuantity`: 可变参数，格式为 `{ProductID1, Quantity1, ProductID2, Quantity2, ...}`。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrdersCrud.insertOrder` 方法插入订单数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 4. `InsertOrderProduct(String OrderID, String ProductID, String Quantity)`
+
+- **功能**: 插入订单商品数据到 `OrderProduct` 表。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String ProductID`: 商品的唯一标识符。
+  - `String Quantity`: 商品的数量。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrderProductCrud.insertOrderProduct` 方法插入订单商品数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 5. `DeleteOrderProduct(String OrderID, String ProductID)`
+
+- **功能**: 删除订单中的某个商品数据。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String ProductID`: 商品的唯一标识符。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrderProductCrud.deleteOrderProduct` 方法删除订单商品数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 6. `DeleteOrder(String OrderID)`
+
+- **功能**: 删除整个订单数据及其相关商品数据。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrdersCrud.deleteOrder` 方法删除订单数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 7. `DeleteProduct(String ProductID)`
+
+- **功能**: 删除产品数据及其在订单中的相关商品数据，并更新订单总价。
+- **参数**:
+  - `String ProductID`: 商品的唯一标识符。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `ProductCrud.deleteProduct` 方法删除产品数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 8. `QueryProductByID(String ProductID)`
+
+- **功能**: 查询指定 ID 的产品信息。
+- **参数**:
+  - `String ProductID`: 产品的唯一标识符。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `ProductCrud.queryProductByID` 方法查询产品信息。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 9. `QueryOrderByID(String OrderID)`
+
+- **功能**: 查询指定 ID 的订单信息及其包含的商品信息。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrdersCrud.querySingleOrderID` 方法查询订单信息。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 10. `SortProductAndDisplay(int sortRule, int descOrAsc)`
+
+- **功能**: 对产品进行排序并显示结果。
+- **参数**:
+  - `int sortRule`: 排序规则，1 表示按价格排序，2 表示按名称排序，0 表示不排序。
+  - `int descOrAsc`: 排序顺序，1 表示降序，2 表示升序。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `ProductCrud.sortProductAndDisplay` 方法对产品进行排序并显示。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 11. `SortOrderAndDisplay(int sortRule, int descOrAsc)`
+
+- **功能**: 对订单进行排序并显示结果。
+- **参数**:
+  - `int sortRule`: 排序规则，1 表示按总价排序，2 表示按下单时间排序。
+  - `int descOrAsc`: 排序顺序，1 表示降序，2 表示升序。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrdersCrud.sortOrderAndDisplay` 方法对订单进行排序并显示。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 12. `UpdateProduct(String ProductID, String ProductNewName, String ProductNewPrice)`
+
+- **功能**: 更新产品数据。
+- **参数**:
+  - `String ProductID`: 产品的唯一标识符。
+  - `String ProductNewName`: 新的产品名称。
+  - `String ProductNewPrice`: 新的产品价格。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `ProductCrud.updateProduct` 方法更新产品数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 13. `UpdateOrder(String OrderID, String NewOrderDate, String... newProductIDAndQuantity)`
+
+- **功能**: 更新订单数据及其包含的商品数据。
+- **参数**:
+  - `String OrderID`: 订单的唯一标识符。
+  - `String NewOrderDate`: 新的订单日期。
+  - `String... newProductIDAndQuantity`: 可变参数，格式为 `{newProductID1, newQuantity1, newProductID2, newQuantity2, ...}`。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `OrdersCrud.updateOrder` 方法更新订单数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 14. `QueryProductByName(String ProductName, int matchRule)`
+
+- **功能**: 根据产品名称查询产品数据，支持模糊查询。
+- **参数**:
+  - `String ProductName`: 产品的名称。
+  - `int matchRule`: 匹配规则，0 表示完全匹配，1 表示模糊匹配。
+- **逻辑**:
+  - 设置事务自动提交为 `false`，开启事务。
+  - 调用 `ProductCrud.queryProductByName` 方法查询产品数据。
+  - 提交事务；如果发生异常，则回滚事务、释放资源并抛出异常。
+
+### 总结
+
+`TableCrud` 类封装了对 `Orders`、`Product` 和 `OrderProduct` 表的各种操作（如创建、插入、删除、更新、查询和排序），并且每个方法都包含了事务处理，以确保数据的一致性。通过设置事务自动提交为 `false`，并在操作完成后提交或回滚事务，保证了所有操作要么全部成功，要么全部失败，从而避免了部分操作成功导致的数据不一致问题。
+
+
+
+
+
+
+
+以下是 `CheckDateFormat.java` 文件中函数的详细解释：
+
+### `isValidDate(String date)`
+
+- **功能**: 检查给定的日期字符串格式是否正确。
+- **参数**:
+  - `String date`: 要检查的日期字符串，格式应为 `"yyyy-MM-dd"`（例如：`"2023-10-05"`）。
+- **逻辑**:
+  - 创建一个 `DateTimeFormatter` 对象，指定日期格式为 `"yyyy-MM-dd"`。
+  - 尝试使用该格式化器解析传入的日期字符串：
+    - 如果解析成功（即日期字符串符合指定格式且是有效的日期），则返回 `true`。
+    - 如果解析失败（即日期字符串不符合指定格式或不是有效的日期），捕获 `DateTimeParseException` 异常并返回 `false`。
+
+这个方法可以确保在插入或更新包含日期字段的数据时，日期格式是正确的，从而避免因无效日期格式导致的错误。
