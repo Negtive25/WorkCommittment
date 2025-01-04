@@ -13,16 +13,7 @@
 ![](./imageForReadMeFile/3.png)
 
 
-
- 
-
-
-
-### 接下来就是每个类的解释:
-
-
-
-以下是 `JdbcUtil.java` 文件中各个函数的详细解释：
+### 以下是 `JdbcUtil.java` 文件中各个函数的详细解释：
 
 ### 1. `startConnection()`
 
@@ -77,7 +68,7 @@
 
 `JdbcUtil` 类封装了与数据库交互的基本操作，包括建立连接、执行更新和查询操作以及释放资源。通过使用 `PreparedStatement` 和 `ResultSet` 数组，该类支持多个并发查询操作，并且提供了防止 SQL 注入的安全措施。
 
-以下是 `ProductCrud.java` 文件中各个函数的详细解释：
+### 以下是 `ProductCrud.java` 文件中各个函数的详细解释：
 
 ### 1. `insertProduct(String ProductID, String ProductName, String ProductPrice)`
 
@@ -167,7 +158,7 @@
 
 `ProductCrud` 类封装了对 `product` 表的增删改查操作，包括插入、删除、更新、查询和排序。此外，它还处理了与订单表之间的关联操作，确保在修改或删除产品时，相关订单的信息也得到同步更新。
 
-以下是 `OrdersCrud.java` 文件中各个函数的详细解释：
+### 以下是 `OrdersCrud.java` 文件中各个函数的详细解释：
 
 ### 1. `insertOrder(String OrderID, String OrderDate, String... ProductIDAndQuantity)`
 
@@ -247,7 +238,7 @@
 
 `OrdersCrud` 类封装了对 `Orders` 表的增删改查操作，包括插入、删除、更新、查询和排序。此外，它还处理了与 `OrderProduct` 表之间的关联操作，确保在修改或删除订单时，相关商品的信息也得到同步更新。
 
-以下是 `OrderProductCrud.java` 文件中各个函数的详细解释：
+### 以下是 `OrderProductCrud.java` 文件中各个函数的详细解释：
 
 ### 1. `insertOrderProduct(String OrderID, String ProductID, String Quantity)`
 
@@ -305,7 +296,7 @@
 
 这些操作确保了订单和商品之间的关联关系在数据库中保持一致，并且在每次修改后及时更新订单的总价。
 
-以下是 `TableCrud.java` 文件中各个函数的详细解释：
+### 以下是 `TableCrud.java` 文件中各个函数的详细解释：
 
 ### 1. `CreateTable(String tableSql)`
 
@@ -465,7 +456,7 @@
 
 `TableCrud` 类封装了对 `Orders`、`Product` 和 `OrderProduct` 表的各种操作（如创建、插入、删除、更新、查询和排序），并且每个方法都包含了事务处理，以确保数据的一致性。通过设置事务自动提交为 `false`，并在操作完成后提交或回滚事务，保证了所有操作要么全部成功，要么全部失败，从而避免了部分操作成功导致的数据不一致问题。
 
-以下是 `CheckDateFormat.java` 文件中函数的详细解释：
+### 以下是 `CheckDateFormat.java` 文件中函数的详细解释：
 
 ### `isValidDate(String date)`
 
