@@ -82,9 +82,6 @@ public class ProductCrud {
             if (!resultSet2.next()||resultSet2.getInt(1)!=1) {
                 String sql5="DELETE FROM Orders WHERE OrderID =?";
                 Test.jdbcUtil.executeUpdate(sql5, OrderID);
-
-
-
                 continue;
             }
 
