@@ -1,6 +1,8 @@
 package org.com.code.webcommunity.synchronizeDB;
 
 
+import java.util.Map;
+
 import org.com.code.webcommunity.dao.ArticleDao;
 import org.com.code.webcommunity.dao.ArticleLikesDao;
 import org.com.code.webcommunity.dao.RedisDao;
@@ -9,9 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
-import java.util.Set;
 
 
 @Service
@@ -26,7 +25,7 @@ public class SyncService {
     private ArticleDao articleDao;
 
 
-    //每隔1分钟同步一次Redis中的点赞记录到ArticleLikes表和Article表
+    //每隔5分钟同步一次Redis中的点赞记录到ArticleLikes表和Article表
     @Scheduled(fixedRate = 300000)
     public void syncLikesCountToRedis() {
         Map<Object, Object> entriesAdd = redisTemplate.opsForHash().entries("add");
