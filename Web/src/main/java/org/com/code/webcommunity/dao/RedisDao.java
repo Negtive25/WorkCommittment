@@ -28,8 +28,8 @@ public class RedisDao {
     //给文章点赞的方法
     public void articleLikeIncrease(int articleId,int  userId){
 
-        String field=userId+"";
-        String value=articleId+"";
+        String field=articleId+"";
+        String value=userId+"";
 
         //article_likes为文章点赞数，user_likes_为用户点赞过的文章
         //举例子，user_likes_1表格的value值为用户1点赞过的文章id，score值为1但无含义
@@ -55,8 +55,8 @@ public class RedisDao {
 
         //Redis的哈希表的key, field , value 都为 String类型，所以这里需要把userId和articleId转为String类型!!!!
         //要不然类型强转转化会报错
-        String field=userId+"";
-        String value=articleId+"";
+        String field=articleId+"";
+        String value=userId+"";
 
         //开始，因为是取消点赞，所以把redis里面的用户对应某个文章的点赞记录删除掉
         Long deleted = redisTemplate.opsForZSet().remove("user_likes_"+userId,articleId);

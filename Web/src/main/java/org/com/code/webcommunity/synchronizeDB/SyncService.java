@@ -1,8 +1,6 @@
 package org.com.code.webcommunity.synchronizeDB;
 
 
-import java.util.Map;
-
 import org.com.code.webcommunity.dao.ArticleDao;
 import org.com.code.webcommunity.dao.ArticleLikesDao;
 import org.com.code.webcommunity.dao.RedisDao;
@@ -11,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.Set;
 
 
 @Service
@@ -25,8 +26,8 @@ public class SyncService {
     private ArticleDao articleDao;
 
 
-    //每隔5分钟同步一次Redis中的点赞记录到ArticleLikes表和Article表
-    @Scheduled(fixedRate = 300000)
+    //每隔1分钟同步一次Redis中的点赞记录到ArticleLikes表和Article表
+    @Scheduled(fixedRate = 60000)
     public void syncLikesCountToRedis() {
         Map<Object, Object> entriesAdd = redisTemplate.opsForHash().entries("add");
         Map<Object, Object> entriesDelete = redisTemplate.opsForHash().entries("delete");
@@ -42,8 +43,8 @@ public class SyncService {
         //更新ArticleLikes表的操作，把Redis中的点赞记录同步到ArticleLikes表
         //先插入点赞记录
         for (Map.Entry<Object, Object> entry : entriesAdd.entrySet()) {
-            String userIdStr = (String) entry.getKey();
-            String articleIdStr = (String) entry.getValue();
+            String articleIdStr = (String) entry.getKey();
+            String userIdStr = (String) entry.getValue();
 
             int userId = Integer.parseInt(userIdStr);
             int articleId = Integer.parseInt(articleIdStr);
@@ -59,8 +60,8 @@ public class SyncService {
         }
         //再删除点赞记录
         for (Map.Entry<Object, Object> entry : entriesDelete.entrySet()) {
-            String userIdStr = (String) entry.getKey();
-            String articleIdStr = (String) entry.getValue();
+            String articleIdStr = (String) entry.getKey();
+            String userIdStr = (String) entry.getValue();
 
             int userId = Integer.parseInt(userIdStr);
             int articleId = Integer.parseInt(articleIdStr);
