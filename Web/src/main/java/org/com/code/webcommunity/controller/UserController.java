@@ -59,7 +59,7 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/api/user/login")
+    @PostMapping("/api/user/login")
     public ResponseEntity<String> Login(@RequestBody User login) throws BadRequestException {
         if (login.getUserName() == null || login.getPassword() == null) {
             throw new BadRequestException("用户名或密码不能为空");
@@ -69,7 +69,7 @@ public class UserController {
         return new ResponseEntity<>(token, HttpStatus.OK);
     }
 
-    @GetMapping("/api/user/logout")
+    @PostMapping("/api/user/logout")
     public ResponseEntity<String> Logout(@RequestHeader String token) throws BadRequestException {
         JWTUtils.deleteToken(token);
         return new ResponseEntity<>("成功登出账号",HttpStatus.OK);
