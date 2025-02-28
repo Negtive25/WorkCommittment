@@ -34,7 +34,11 @@ public class ArticleLikesDao {
     public List<Articles> selectLikedArticlesOfUser(int userId) {
         Set<Integer> articleIdSet =redisDao.selectLikedArticlesOfUser(userId);
 
-        return articlesMapper.selectArticlesByManyIds(articleIdSet);
+        List<Articles> articlesList=articlesMapper.selectArticlesByManyIds(articleIdSet);
+        //如果有人给这些文章点赞的话，可能点赞数还在redis数据库中缓存，还没有同步到mysql数据库中
+        //所以直接由articlesMapper.selectArticlesByManyIds(articleIds)访问mysql数据库获取的文章点赞数可能不准
+        //所以这里访问redis数据库，对这些文章的点赞数进行可能的更新
+        return redisDao.queryRedisToUpdateLikeCountForArticleList(articlesList);
     }
 
     public boolean ifUserEverLikesTheArticle(int userId,int articleId){

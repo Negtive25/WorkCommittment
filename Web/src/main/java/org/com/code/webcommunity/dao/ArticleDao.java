@@ -1,7 +1,5 @@
 package org.com.code.webcommunity.dao;
 
-import org.apache.ibatis.annotations.Param;
-import org.com.code.webcommunity.exception.DatabaseException;
 import org.com.code.webcommunity.mapper.ArticlesMapper;
 import org.com.code.webcommunity.pojo.Articles;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +17,8 @@ public class ArticleDao {
     private ArticlesMapper articlesMapper;
     @Autowired
     private RedisTemplate<String,Integer> redisTemplate;
+    @Autowired
+    private RedisDao redisDao;
 
     //这里是redis数据库进行的操作
 
@@ -32,7 +32,11 @@ public class ArticleDao {
         if(LikesOrLatest==0) articleIds=redisTemplate.opsForZSet().reverseRange("article_likes", start, end);
         else
             articleIds= redisTemplate.opsForZSet().reverseRange("article_latest", start, end);
-        return articlesMapper.selectArticlesByManyIds(articleIds);
+        List<Articles> articlesList=articlesMapper.selectArticlesByManyIds(articleIds);
+        //如果有人给这些文章点赞的话，可能点赞数还在redis数据库中缓存，还没有同步到mysql数据库中
+        //所以直接由articlesMapper.selectArticlesByManyIds(articleIds)访问mysql数据库获取的文章点赞数可能不准
+        //所以这里访问redis数据库，对这些文章的点赞数进行可能的更新
+        return redisDao.queryRedisToUpdateLikeCountForArticleList(articlesList);
 
     }
     //---------------------------------------------------------------------------------------
@@ -60,7 +64,12 @@ public class ArticleDao {
     public Articles selectArticlesById(int articleId) {
         //文章被点击一次，浏览量加一
         articlesMapper.articleViewIncrease(articleId);
-        return articlesMapper.selectArticlesById(articleId);
+        Articles articles = articlesMapper.selectArticlesById(articleId);
+        //如果有人给这篇文章点赞的话，可能点赞数还在redis数据库中缓存，还没有同步到mysql数据库中
+        //所以直接由articlesMapper.selectArticlesById(articleId)访问mysql数据库获取的文章点赞数可能不准
+        //所以这里访问redis数据库，对这篇文章的点赞数进行可能的更新
+        articles.setLikeCount(redisDao.getLikesCount(articleId));
+        return articles;
     }
 
 
@@ -68,7 +77,12 @@ public class ArticleDao {
     //这里返回除了文章内容以外的所有属性的对象列表，旨在节省性能，如果点击某个特定的文章后
     //才会调用查询该文章id加载整个文章内容
     public List<Articles> selectArticlesLikeTitle(String title) {
-        return articlesMapper.selectArticlesLikeTitle(title);
+        List<Articles> articlesList=articlesMapper.selectArticlesLikeTitle(title);
+
+        //如果有人给这些文章点赞的话，可能点赞数还在redis数据库中缓存，还没有同步到mysql数据库中
+        //所以直接由articlesMapper.selectArticlesLikeTitle(title)访问mysql数据库获取的文章点赞数可能不准
+        //所以这里访问redis数据库，对这些文章的点赞数进行可能的更新
+        return redisDao.queryRedisToUpdateLikeCountForArticleList(articlesList);
     }
 
     //创建草稿

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.com.code.webcommunity.mapper.ArticleLikesMapper">
+
+
+    <insert id="insertArticleLike">
+        insert into article_likes (
+        <trim suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="articleId != null">articleId,</if>
+            <if test="userId != null">userId,</if>
+            <if test="createdAt != null">createdAt</if>
+        </trim>
+        ) values (
+        <trim suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="articleId != null">#{articleId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="createdAt != null">#{createdAt}</if>
+        </trim>
+        )
+    </insert>
+
+
+    <delete id="deleteArticleLike" >
+        delete from article_likes where articleId = #{articleId} and userId = #{userId}
+    </delete>
+
+</mapper>
