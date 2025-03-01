@@ -16,16 +16,13 @@ public class UserDao {
         return userMapper.selectUserById(userId);
     }
 
-    public int selectUserIdByNameAndPassword(Map<String,Object> map){
-        return userMapper.selectUserIdByNameAndPassword(map);
+    public int selectUserIdByNameAndPassword(String userName){
+        return userMapper.selectUserIdByName(userName);
     }
     public int selectUserIdByName(String userName){
         return userMapper.selectUserIdByName(userName);
     }
 
-    public int insertUser(User user){
-        return userMapper.insertUser(user);
-    }
 
     public int updateUser(Map<String,Object> map){
         return userMapper.updateUser(map);

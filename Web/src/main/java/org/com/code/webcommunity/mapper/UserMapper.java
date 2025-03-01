@@ -10,13 +10,13 @@ public interface UserMapper {
 
     public User selectUserById(int userId);
 
-    public int selectUserIdByNameAndPassword(Map<String,Object> map);
-
     public int insertUser(User user);
 
     public int selectUserIdByName(String userName);
 
     public int updateUser(Map<String,Object> map);
 
+    //用于SpringSecurity的校验
+    public User findUserByName(String userName);
 }
 

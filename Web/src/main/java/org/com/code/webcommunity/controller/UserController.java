@@ -7,6 +7,7 @@ import org.com.code.webcommunity.utils.JWTUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,9 +16,9 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/api/user/seeUserProfile")
-    public ResponseEntity<User> selectUserById(@RequestHeader String token) throws BadRequestException {
+    public ResponseEntity<User> seeUserProfile() throws BadRequestException {
 
-        int userId =JWTUtils.checkToken(token);
+        int userId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
         User result = userService.selectUserById(userId);
         if (result == null) {
@@ -35,21 +36,19 @@ public class UserController {
         if (user == null) {
             throw new BadRequestException("用户信息不能为空");
         }
-        int result = userService.insertUser(user);
-        if (result == 0) {
-            throw new BadRequestException("插入用户失败");
-        }
+        userService.insertUser(user);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PutMapping("/api/user/updateUser")
-    public ResponseEntity<User> updateUser(@RequestHeader String token,@RequestBody User user) throws BadRequestException {
+    public ResponseEntity<User> updateUser(@RequestBody User user) throws BadRequestException {
 
         if (user == null) {
             throw new BadRequestException("用户信息不能为空");
         }
 
-        int userId =JWTUtils.checkToken(token);
+        int userId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
+
         user.setId(userId);
 
         int result = userService.updateUser(user);
@@ -64,8 +63,7 @@ public class UserController {
         if (login.getUserName() == null || login.getPassword() == null) {
             throw new BadRequestException("用户名或密码不能为空");
         }
-        int id = userService.selectUserIdByNameAndPassword(login);
-        String token = JWTUtils.getJwtToken(id);
+        String token = userService.selectUserIdByNameAndPasswordAndReturnToken(login);
         return new ResponseEntity<>(token, HttpStatus.OK);
     }
 

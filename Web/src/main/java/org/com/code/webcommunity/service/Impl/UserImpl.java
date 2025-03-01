@@ -1,11 +1,15 @@
 package org.com.code.webcommunity.service.Impl;
 
+import jakarta.annotation.Resource;
+import org.com.code.webcommunity.config.DBUserDetailsManager;
 import org.com.code.webcommunity.dao.ArticleDao;
 import org.com.code.webcommunity.dao.UserDao;
 import org.com.code.webcommunity.exception.DatabaseException;
 import org.com.code.webcommunity.pojo.User;
 import org.com.code.webcommunity.service.UserService;
+import org.com.code.webcommunity.utils.JWTUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,17 +22,19 @@ public class UserImpl implements UserService {
     private UserDao userDao;
     @Autowired
     private ArticleDao articleDao;
-
+    @Resource
+    private DBUserDetailsManager dbUserDetailsManager;
 
     @Override
     @Transactional
-    public int selectUserIdByNameAndPassword(User login) {
+    public String selectUserIdByNameAndPasswordAndReturnToken(User login) {
         try {
-
-            Map<String, Object> map = new HashMap<>();
-            map.put("userName", login.getUserName());
-            map.put("password", login.getPassword());
-            return userDao.selectUserIdByNameAndPassword(map);
+            //SpringSecurity验证用户名密码
+            dbUserDetailsManager.loadUserByUsername(login.getUserName());
+            //查询数据库获取用户id
+            int userId = userDao.selectUserIdByNameAndPassword(login.getUserName());
+            //生成token并返回
+            return JWTUtils.getJwtToken(userId);
         }catch (Exception e) {
             e.printStackTrace();
             throw new DatabaseException("账号或密码错误");
@@ -48,9 +54,15 @@ public class UserImpl implements UserService {
 
     @Override
     @Transactional
-    public int insertUser(User user) {
+    public void insertUser(User user) {
         try {
-            return userDao.insertUser(user);
+            UserDetails userDetails = org.springframework.security.core.userdetails.User
+                    .withDefaultPasswordEncoder()
+                    .username(user.getUserName()) //自定义用户名
+                    .password(user.getPassword()) //自定义密码
+                    .build();
+            dbUserDetailsManager.createUser(userDetails);
+
         }catch (Exception e) {
             e.printStackTrace();
             throw new DatabaseException("数据库插入用户发生错误,可能是用户名重复");

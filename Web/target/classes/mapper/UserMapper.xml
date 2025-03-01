@@ -29,10 +29,6 @@
     </insert>
 
 
-    <select id="selectUserIdByNameAndPassword" resultType="int">
-        select id from users where userName = #{userName} and password = #{password}
-    </select>
-
     <select id="selectUserById" resultType="User">
         select id,userName,avatar,bio,createdAt,updatedAt from users where id = #{id}
     </select>
@@ -54,5 +50,8 @@
         where id = #{id}
     </update>
 
+    <select id="findUserByName" resultType="User">
+        select userName,password from users where userName = #{userName}
+    </select>
 
 </mapper>

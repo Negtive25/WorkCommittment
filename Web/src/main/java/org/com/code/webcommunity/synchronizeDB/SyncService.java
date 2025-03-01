@@ -26,8 +26,8 @@ public class SyncService {
     private ArticleDao articleDao;
 
 
-    //每隔1分钟同步一次Redis中的点赞记录到ArticleLikes表和Article表
-    @Scheduled(fixedRate = 600000)
+    //每隔3分钟同步一次Redis中的点赞记录到ArticleLikes表和Article表
+    @Scheduled(fixedRate = 180000)
     public void syncLikesCountToRedis() {
         Map<Object, Object> entriesAdd = redisTemplate.opsForHash().entries("add");
         Map<Object, Object> entriesDelete = redisTemplate.opsForHash().entries("delete");

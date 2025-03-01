@@ -8,6 +8,7 @@ import org.com.code.webcommunity.utils.JWTUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class CommentController {
 
     @PostMapping("/api/comments/insertComment")
     public ResponseEntity<Comments> insertComment(@RequestHeader String token,@RequestBody Comments comment) throws BadRequestException {
-        int userId = JWTUtils.checkToken(token);
+        int userId =  Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
         if (comment == null)
             throw new BadRequestException("评论为空");

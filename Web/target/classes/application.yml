@@ -10,7 +10,6 @@ spring:
       port: 6379
       password: password
 
-
 server:
   port: 8080
 

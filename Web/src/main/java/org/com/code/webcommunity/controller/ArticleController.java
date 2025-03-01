@@ -9,6 +9,7 @@ import org.com.code.webcommunity.utils.JWTUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -59,7 +60,9 @@ public class ArticleController {
 
     @GetMapping("/api/articles/articlesOfAuthor")
     public ResponseEntity<List<Articles>> selectArticlesOfAuthor(@RequestHeader String token) throws BadRequestException {
-        int authorId =JWTUtils.checkToken(token);
+
+        int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
+
         if (authorId <1) {
             throw new BadRequestException("作者id参数不合理,authorId需要大于等于1");
         }
@@ -71,7 +74,7 @@ public class ArticleController {
 
     @GetMapping("/api/articles/draftsOfAuthor")
     public ResponseEntity<List<Articles>> selectDraftsOfAuthor(@RequestHeader String token) throws BadRequestException {
-        int authorId =JWTUtils.checkToken(token);
+        int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
         List<Articles> articles = articleService.selectDraftsOfAuthor(authorId);
         if (articles == null || articles.isEmpty())
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -92,7 +95,7 @@ public class ArticleController {
         if (article.getTitle() == null|| article.getContent() == null) {
             throw new BadRequestException("文章不能为空");
         }
-        int userId = JWTUtils.checkToken(token);
+       int userId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
         article.setAuthorId(userId);
        User result = userService.selectUserById(userId);
        if (result == null) {
@@ -110,8 +113,8 @@ public class ArticleController {
 
    @PutMapping("/api/articles/publishArticles")
     public ResponseEntity<Articles> updateArticleStatusToPublish(@RequestHeader String token,@RequestParam(value = "articleId") int articleId) throws BadRequestException {
-        //验证token，判断用户是否登录
-        int authorId=JWTUtils.checkToken(token);
+
+       int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
         int result = articleService.updateArticleStatusToPublish(authorId ,articleId);
         if (result == 0)
@@ -121,8 +124,9 @@ public class ArticleController {
 
     @PutMapping("/api/articles/updateArticles")
     public ResponseEntity<Articles> updateArticles(@RequestHeader String token,@RequestBody Articles article) throws BadRequestException {
-        //验证token，判断用户是否登录
-        int authorId = JWTUtils.checkToken(token);
+
+        int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
+
         if (article == null) {
             throw new BadRequestException("文章为空，更新失败");
         }
@@ -136,7 +140,7 @@ public class ArticleController {
     @DeleteMapping("/api/articles/deleteArticles")
     public ResponseEntity<Articles> deleteArticles(@RequestHeader String token,@RequestParam(value = "articleId") int articleId) throws BadRequestException {
         //验证token，判断用户是否登录
-        int authorId = JWTUtils.checkToken(token);
+        int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
         int result = articleService.deleteArticles(authorId,articleId);
         if (result == 0)
            return new ResponseEntity<>(HttpStatus.NOT_FOUND);

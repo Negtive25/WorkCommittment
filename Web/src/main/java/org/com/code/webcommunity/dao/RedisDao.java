@@ -41,6 +41,8 @@ public class RedisDao {
         List<Object> LikesCounts = redisTemplate.executePipelined(new RedisCallback<Object>() {
             @Override
             public Object doInRedis(RedisConnection connection) throws DataAccessException {
+                //redis 内部存储的所有键和值都是以字节数组形式存在的
+                //对redis ZSet数据类型对应的 键和值 进行序列化,确保与 Redis 存储的数据格式完全匹配
                 byte[] key = redisTemplate.getStringSerializer().serialize("article_likes");
                 for (String articleId : articleIds) {
                     byte[] articleIdBytes = redisTemplate.getStringSerializer().serialize(articleId);

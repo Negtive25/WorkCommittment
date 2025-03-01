@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 @Service
 public interface UserService {
     User selectUserById(int userId);
-    int selectUserIdByNameAndPassword(User login);
-    int insertUser(User user);
+    String selectUserIdByNameAndPasswordAndReturnToken(User login);
+    void insertUser(User user);
     int updateUser(User user);
 }
