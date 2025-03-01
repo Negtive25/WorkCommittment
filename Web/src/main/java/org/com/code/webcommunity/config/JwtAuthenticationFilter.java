@@ -21,15 +21,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.util.Collection;
 import java.util.Collections;
 
-//SpringSecurity自定义的JWT认证过滤器
-//这里相当于一个全局过滤器版的 JWTUtils.checkToken()方法，区别在于它是全局性的，可以拦截所有请求，并验证JWT令牌。
-//你可能会想，这个过滤器还不如一个简单的 JWTUtils.checkToken()好用
-//但是你还记得anyRequest().authenticated()，如果一个url被authenticated()，那它必须要接受验证才能被访问
-//但是SpringSecurity怎么知道你是已经认证过了，authenticated()它怎么知道你已经验证过了，可以给你开放
-//原因就在于，实现这些 过滤层接口，然后SpringSecurity会一个一个按顺序的调用这些过滤层，把认证后的信息存储到
+//SpringSecurity自定义的JWT认证过滤器，可以全局范围内拦截请求，并验证JWT令牌。
+//实现这些 过滤层接口，然后SpringSecurity会一个一个按顺序的调用这些过滤层，把认证后的信息存储到
 //UsernamePasswordAuthenticationToken对象中，调用其实现的接口AbstractAuthenticationToken的setAuthenticated(true)方法，
 // 然后把认证的信息打包到SecurityContextHolder里
-//因为setAuthenticated(true)，所以authenticated()方法返回true，所以你通过了验证
+//因为setAuthenticated(true)，所以authenticated()方法返回true，所以才算通过了验证
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
