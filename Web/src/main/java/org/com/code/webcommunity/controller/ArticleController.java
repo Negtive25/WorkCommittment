@@ -59,7 +59,7 @@ public class ArticleController {
     }
 
     @GetMapping("/api/articles/articlesOfAuthor")
-    public ResponseEntity<List<Articles>> selectArticlesOfAuthor(@RequestHeader String token) throws BadRequestException {
+    public ResponseEntity<List<Articles>> selectArticlesOfAuthor() throws BadRequestException {
 
         int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -73,7 +73,7 @@ public class ArticleController {
     }
 
     @GetMapping("/api/articles/draftsOfAuthor")
-    public ResponseEntity<List<Articles>> selectDraftsOfAuthor(@RequestHeader String token) throws BadRequestException {
+    public ResponseEntity<List<Articles>> selectDraftsOfAuthor() throws BadRequestException {
         int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
         List<Articles> articles = articleService.selectDraftsOfAuthor(authorId);
         if (articles == null || articles.isEmpty())
@@ -91,7 +91,7 @@ public class ArticleController {
 
     //如果要发布文章的话，前提是要把文章保存
    @PostMapping("/api/articles/saveArticlesAsDraft")
-   public ResponseEntity<Articles> insertArticlesAsDraft(@RequestHeader String token,@RequestBody Articles article) throws BadRequestException {
+   public ResponseEntity<Articles> insertArticlesAsDraft(@RequestBody Articles article) throws BadRequestException {
         if (article.getTitle() == null|| article.getContent() == null) {
             throw new BadRequestException("文章不能为空");
         }
@@ -112,7 +112,7 @@ public class ArticleController {
    }
 
    @PutMapping("/api/articles/publishArticles")
-    public ResponseEntity<Articles> updateArticleStatusToPublish(@RequestHeader String token,@RequestParam(value = "articleId") int articleId) throws BadRequestException {
+    public ResponseEntity<Articles> updateArticleStatusToPublish(@RequestParam(value = "articleId") int articleId) throws BadRequestException {
 
        int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -123,7 +123,7 @@ public class ArticleController {
     }
 
     @PutMapping("/api/articles/updateArticles")
-    public ResponseEntity<Articles> updateArticles(@RequestHeader String token,@RequestBody Articles article) throws BadRequestException {
+    public ResponseEntity<Articles> updateArticles(@RequestBody Articles article) throws BadRequestException {
 
         int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -138,8 +138,8 @@ public class ArticleController {
     }
 
     @DeleteMapping("/api/articles/deleteArticles")
-    public ResponseEntity<Articles> deleteArticles(@RequestHeader String token,@RequestParam(value = "articleId") int articleId) throws BadRequestException {
-        //验证token，判断用户是否登录
+    public ResponseEntity<Articles> deleteArticles(@RequestParam(value = "articleId") int articleId) throws BadRequestException {
+
         int authorId = Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
         int result = articleService.deleteArticles(authorId,articleId);
         if (result == 0)

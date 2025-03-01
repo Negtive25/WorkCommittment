@@ -16,7 +16,7 @@ public class MarkdownController {
 
     //接收前端的Markdown文本并返回HTML
     @PostMapping("/markdownConvert")
-    public ResponseEntity<String> convertMarkdownToHtml(@RequestHeader String token,@RequestBody String markdown) {
+    public ResponseEntity<String> convertMarkdownToHtml(@RequestBody String markdown) {
         // 解析Markdown文本
         Node document = parser.parse(markdown);
         // 转换为HTML

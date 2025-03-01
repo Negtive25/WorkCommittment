@@ -19,7 +19,7 @@ public class CommentController {
     private CommentService commentService;
 
     @PostMapping("/api/comments/insertComment")
-    public ResponseEntity<Comments> insertComment(@RequestHeader String token,@RequestBody Comments comment) throws BadRequestException {
+    public ResponseEntity<Comments> insertComment(@RequestBody Comments comment) throws BadRequestException {
         int userId =  Integer.parseInt(SecurityContextHolder.getContext().getAuthentication().getName());
 
         if (comment == null)
