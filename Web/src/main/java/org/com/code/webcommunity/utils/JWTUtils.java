@@ -37,12 +37,10 @@ public class JWTUtils {
         claimsOfRandomDigit.put("random", random);
         claimsOfUserId.put("userId", userId);
 
-        String tokenOfRandomDigit = Jwts.builder()
+        String token = Jwts.builder()
                 .signWith(SignatureAlgorithm.HS256, jwtSecret)
                 .setClaims(claimsOfRandomDigit)
                 .compact();
-
-        String token= tokenOfRandomDigit;
 
         String authentication = "Auth"+userId;
 
