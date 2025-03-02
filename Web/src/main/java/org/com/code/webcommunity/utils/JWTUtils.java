@@ -41,12 +41,8 @@ public class JWTUtils {
                 .signWith(SignatureAlgorithm.HS256, jwtSecret)
                 .setClaims(claimsOfRandomDigit)
                 .compact();
-        String tokenOfUserId = Jwts.builder()
-                .signWith(SignatureAlgorithm.HS256, jwtSecret)
-                .setClaims(claimsOfUserId)
-                .compact();
 
-        String token= tokenOfRandomDigit+tokenOfUserId;
+        String token= tokenOfRandomDigit;
 
         String authentication = "Auth"+userId;
 
