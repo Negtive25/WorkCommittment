@@ -29,11 +29,11 @@ import java.util.*;
         messageModel = MessageModel.CLUSTERING)
 public class ChatMsgConsumer implements RocketMQListener<String> {
 
-    @Qualifier("redisTemplate")
+    @Qualifier("redisTemplateLong")
     @Autowired
     private RedisTemplate redisTemplate;
 
-    @Qualifier("stringRedisTemplate")
+    @Qualifier("strRedisTemplate")
     @Autowired
     private RedisTemplate stringRedisTemplate;
 

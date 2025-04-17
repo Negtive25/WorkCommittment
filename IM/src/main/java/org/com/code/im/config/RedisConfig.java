@@ -37,7 +37,7 @@ public class RedisConfig {
         return redisTemplate;
     }
 
-    @Bean("redisTemplate")
+    @Bean("redisTemplateLong")
     @Primary
     public RedisTemplate<String, Long> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         return createRedisTemplate(

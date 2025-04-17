@@ -3,6 +3,7 @@ package org.com.code.im.config;
 import org.com.code.im.pojo.User;
 import org.com.code.im.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +22,7 @@ public class DBUserDetailsManager implements UserDetailsManager, UserDetailsPass
 
     @Autowired
     private UserMapper userMapper;
+    @Qualifier("redisTemplateLong")
     @Autowired
     private RedisTemplate redisTemplate;
 

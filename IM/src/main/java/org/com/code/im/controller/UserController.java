@@ -23,11 +23,13 @@ import java.util.Map;
 public class UserController {
     @Autowired
     private UserService userService;
+    @Qualifier("redisTemplateLong")
     @Autowired
     private RedisTemplate redisTemplate;
+
     @Autowired
     @Qualifier("strRedisTemplate")
-    RedisTemplate<String, String> strRedisTemplate;
+    RedisTemplate strRedisTemplate;
 
 
 

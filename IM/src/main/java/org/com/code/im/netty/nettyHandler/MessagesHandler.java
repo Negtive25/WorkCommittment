@@ -13,6 +13,7 @@ import org.com.code.im.utils.DFAFilter;
 import org.com.code.im.utils.FriendManager;
 import org.com.code.im.utils.SnowflakeIdUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ public class MessagesHandler extends SimpleChannelInboundHandler<TextWebSocketFr
      *  由于@Configuration注解,这个类是单例的,所以这个Bean方法得到的是同一个RedisTemplate实例
      *  所以不用担心高并发情况下反复创建和销毁对象造成性能损失
      */
+    @Qualifier("redisTemplateLong")
     @Autowired
     RedisTemplate redisTemplate;
 
@@ -43,6 +45,14 @@ public class MessagesHandler extends SimpleChannelInboundHandler<TextWebSocketFr
     private long lastTime = 0;
     private long currentTime = 0;
 
+    /**
+     *  因为sequenceId只是为了保证某一段时间内客户端向服务器发送的消息的唯一性,
+     *  不需要永远不变,只需要保存那一段连接时间的sequenceId,
+     *  所以每次用户上线时,默认的用户消息的sequenceId为0
+     *  然后客户端每次也默认用0作为起始的sequenceId
+     *  之后客户端每次发送消息时,都会把sequenceId+1,
+     *  然后服务器比较每一次消息的sequenceId看看有没有重复
+     */
     //不同channel有自己的sequenceId用于消息去重
     private long sequenceId = -1;
 

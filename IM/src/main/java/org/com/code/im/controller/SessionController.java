@@ -9,6 +9,7 @@ import org.com.code.im.rocketMq.producer.MsgProducer;
 import org.com.code.im.service.SessionService;
 import org.com.code.im.utils.FriendManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +50,7 @@ public class SessionController {
     private SessionService sessionService;
     @Autowired
     private MsgProducer msgProducer;
+    @Qualifier("redisTemplateLong")
     @Autowired
     private RedisTemplate redisTemplate;
     /**

@@ -7,6 +7,7 @@ import org.com.code.im.pojo.UserFollowing;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.service.FollowService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class FollowController {
     @Autowired
     private FollowService followService;
+    @Qualifier("redisTemplateLong")
     @Autowired
     private RedisTemplate redisTemplate;
 

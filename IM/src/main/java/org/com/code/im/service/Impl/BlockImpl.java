@@ -6,6 +6,7 @@ import org.com.code.im.mapper.UserMapper;
 import org.com.code.im.pojo.Blocks;
 import org.com.code.im.service.BlockService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.Map;
 public class BlockImpl implements BlockService {
     @Autowired
     private BlockMapper blockMapper;
+    @Qualifier("redisTemplateLong")
     @Autowired
     RedisTemplate redisTemplate;
     @Autowired

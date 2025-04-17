@@ -26,7 +26,7 @@ public class VideoController {
 
     @Qualifier("objRedisTemplate")
     @Autowired
-    private RedisTemplate<String,Object> redisTemplate;
+    private RedisTemplate redisTemplateObj;
 
     /**
      * 前端先把视频文件上传到OSS后,获得视频的URL码，再调用此接口，将视频信息保存到数据库中
@@ -40,7 +40,7 @@ public class VideoController {
                                        @RequestParam("uploadId") String uploadId,
                                        @RequestParam("url") String url) {
 
-        double durationMinutes = (double)redisTemplate.opsForHash().get("upload:" + uploadId,"duration");
+        double durationMinutes = (double) redisTemplateObj.opsForHash().get("upload:" + uploadId,"duration");
         long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
 
         // 构建插入视频的参数
@@ -65,7 +65,7 @@ public class VideoController {
         // 调用service插入视频记录
         videoService.insertVideo(videoParams);
         // 删除redis中保存的上传信息
-        redisTemplate.delete("upload:" + uploadId);
+        redisTemplateObj.delete("upload:" + uploadId);
 
         return new ResponseHandler(ResponseHandler.SUCCESS, "视频上传成功");
     }

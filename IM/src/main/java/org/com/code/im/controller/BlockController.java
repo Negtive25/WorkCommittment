@@ -6,6 +6,7 @@ import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.service.BlockService;
 import org.com.code.im.utils.FriendManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import java.util.List;
 public class BlockController {
     @Autowired
     BlockService blockService;
+    @Qualifier("redisTemplateLong")
     @Autowired
     RedisTemplate redisTemplate;
 

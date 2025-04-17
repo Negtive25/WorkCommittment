@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class FileUploadService {
     @Qualifier("objRedisTemplate")
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate redisTemplate;
     @Autowired
     private OSSUtil ossUtil;
 

@@ -29,7 +29,7 @@ public class SessionImpl implements SessionService {
     GroupMemberMapper groupMemberMapper;
     @Autowired
     PrivateMemberMapper privateMemberMapper;
-    @Qualifier("redisTemplate")
+    @Qualifier("redisTemplateLong")
     @Autowired
     RedisTemplate redisTemplate;
     @Autowired
