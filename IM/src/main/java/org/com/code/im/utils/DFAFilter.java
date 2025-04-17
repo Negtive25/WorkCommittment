@@ -1,0 +1,92 @@
+package org.com.code.im.utils;
+
+import jakarta.annotation.PostConstruct;
+import org.springframework.stereotype.Component;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class DFAFilter {
+    /**
+     * 敏感词状态转移图
+      */
+    private static Map<Character, Map> sensitiveDict = new HashMap<>();
+
+    private static String FILE_PATH = "src/main/resources/sensitiveDict";
+
+    /**
+     * 添加敏感词到状态转移图
+     */
+    public static void addWord(String word) {
+        Map<Character, Map> currentDict = sensitiveDict;
+        for (int i = 0; i < word.length(); i++) {
+            char c = word.charAt(i);
+            if (!currentDict.containsKey(c)) {
+                currentDict.put(c, new HashMap<>());
+            }
+            currentDict = currentDict.get(c);
+        }
+        // 标记为终止节点
+        currentDict.put('$', null);
+    }
+
+    /**
+     * 过滤敏感词
+     */
+    public static String filter(String text, char replaceChar) {
+        char[] result = text.toCharArray();
+        int length = text.length();
+
+        for (int i = 0; i < length; i++) {
+            Map<Character, Map> currentDict = sensitiveDict;
+            int j = i;
+            while (j < length && currentDict.containsKey(text.charAt(j))) {
+                if(currentDict.containsKey(text.charAt(j)))
+                    currentDict = currentDict.get(text.charAt(j));
+                if (currentDict.containsKey('$')) {
+                    // 匹配到敏感词，替换为指定字符
+                    for (int k = i; k <= j; k++) {
+                        result[k] = replaceChar;
+                    }
+                    break;
+                }
+                j++;
+            }
+        }
+        return new String(result);
+    }
+
+    /**
+     * 持久化状态转移图
+     */
+    public static void saveSensitiveDict() {
+        try {
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_PATH))) {
+                oos.writeObject(sensitiveDict);
+            }
+        } catch (IOException e) {
+            System.err.println("保存状态转移图失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 加载状态转移图
+     */
+    @PostConstruct
+    private void loadSensitiveDict() {
+        try {
+           try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_PATH))) {
+                Object obj = ois.readObject();
+                if (obj instanceof Map) {
+                    sensitiveDict.putAll((Map<Character, Map>) obj);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("未找到持久化文件，请重新构建状态转移图");
+        }
+    }
+}
