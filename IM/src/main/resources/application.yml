@@ -42,3 +42,11 @@ rocketmq:
     group4: querySessionList-Consumer
     group5: commentMsg-Consumer
 
+
+aliyun:
+  oss:
+    endpoint: xxxxxx
+    accessKeyId: xxxx
+    accessKeySecret: xxxx
+    bucketName: xxxx
+    bucketDomain: xxxxxxxxxx
