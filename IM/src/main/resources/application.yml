@@ -45,8 +45,8 @@ rocketmq:
 
 aliyun:
   oss:
-    endpoint: oss-cn-fuzhou.aliyuncs.com
-    accessKeyId: LTAI5tKcGfrDhkoN5GSZyGZb
-    accessKeySecret: v5SRgkYC8wt2qK0bVUQ43o6YrKN27s
-    bucketName: sk8erboi
-    bucketDomain: http://sk8erboi.oss-cn-fuzhou.aliyuncs.com/
+    endpoint: xxxxxx
+    accessKeyId: xxxx
+    accessKeySecret: xxxx
+    bucketName: xxxx
+    bucketDomain: xxxxxxxxxx
