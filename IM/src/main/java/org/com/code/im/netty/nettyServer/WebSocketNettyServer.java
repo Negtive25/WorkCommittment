@@ -39,7 +39,7 @@ public class WebSocketNettyServer {
      * 那么它会阻止 Spring Boot 完成其初始化过程，
      * 导致 Spring Boot 的 HTTP 服务（监听 8080 端口）无法正常启动。
      *
-     * 所以此处要多加一个线程来运行Netty服务器，避免阻塞主线程，任何主线程继续初始化Spring Boot的HTTP服务。
+     * 所以此处要多加一个线程来运行Netty服务器，避免阻塞主线程，让主线程继续初始化Spring Boot的HTTP服务。
      */
     @PostConstruct
     public void startRunNettyServer() {
