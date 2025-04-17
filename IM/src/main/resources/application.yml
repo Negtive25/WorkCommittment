@@ -45,8 +45,8 @@ rocketmq:
 
 aliyun:
   oss:
-    endpoint: xxxxxx
-    accessKeyId: xxxx
-    accessKeySecret: xxxx
-    bucketName: xxxx
-    bucketDomain: xxxxxxxxxx
+    endpoint:
+    accessKeyId:
+    accessKeySecret:
+    bucketName:
+    bucketDomain:
