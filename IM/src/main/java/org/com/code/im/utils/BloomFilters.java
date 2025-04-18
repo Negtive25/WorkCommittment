@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class BloomFilters {
-    private static BloomFilter<String> bloomFilter;
     private static CopyOnWriteArrayList<BloomFilter<String>> bloomFilterList;
     /**
      * 读写锁多个线程可以同时进行读操作，只有写操作会阻塞其他线程。
@@ -21,23 +20,8 @@ public class BloomFilters {
     private static final double FPP = 0.01;
 
     public static BloomFilter<String> getBloomFilter() {
-        /**
-         * 之所以在synchronized里面还要再判断一次是否为null，是因为如果有两个线程
-         * 线程1和线程2同时发现bloomFilter为null，那么两个线程都会进入if语句，
-         * 然后线程1拿到锁.线程21在外面等待.线程1执行完synchronized代码块后,
-         * 此时bloomFilter已经有一个实例的引用了,如果这时候线程2拿到锁,那么线程2又会再创建一个实例
-         * 因此我们在synchronized里面还要再判断一次是否为null
-         */
-        if (bloomFilter == null) {
-            synchronized (BloomFilters.class) {
-                if (bloomFilter == null) {
-                    bloomFilter = BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), EXPECTED_INSERTIONS, FPP);
-                }
-            }
-        }
-        return bloomFilter;
+        return BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), EXPECTED_INSERTIONS, FPP);
     }
-
     /**
      * 静态初始化,确保只初始化一次。
      */
