@@ -56,21 +56,33 @@ public class BloomFilters {
      */
     @Scheduled(fixedRate = 1,timeUnit = TimeUnit.HOURS)
     public static void updateBloomFilterList() {
-        synchronized (lockForUpdateAndIterator) {
+        // acquire write lock for rotating bloom filter list
+        lockForUpdateAndIterator.writeLock().lock();
+        try {
             bloomFilterList.remove(0);
             bloomFilterList.add(getBloomFilter());
+        } finally {
+            lockForUpdateAndIterator.writeLock().unlock();
         }
     }
 
     public static boolean checkIfDuplicatedMessage(String message) {
-        synchronized (lockForUpdateAndIterator) {
-            for(int i = 0; i < BLOOM_FILTER_LIST_SIZE; i++){
+        lockForUpdateAndIterator.readLock().lock();
+        try {
+            for (int i = 0; i < BLOOM_FILTER_LIST_SIZE; i++) {
                 if (bloomFilterList.get(i).mightContain(message)) {
                     return true;
                 }
             }
-            bloomFilterList.get(BLOOM_FILTER_LIST_SIZE - 1).put(message);
-            return false;
+        } finally {
+            lockForUpdateAndIterator.readLock().unlock();
         }
+        lockForUpdateAndIterator.writeLock().lock();
+        try {
+            bloomFilterList.get(BLOOM_FILTER_LIST_SIZE - 1).put(message);
+        } finally {
+            lockForUpdateAndIterator.writeLock().unlock();
+        }
+        return false;
     }
 }
