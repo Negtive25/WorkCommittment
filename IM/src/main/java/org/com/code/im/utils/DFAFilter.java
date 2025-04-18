@@ -4,10 +4,9 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 public class DFAFilter {
@@ -18,40 +17,52 @@ public class DFAFilter {
 
     private static String FILE_PATH = "src/main/resources/sensitiveDict";
 
+    private static ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+
     /**
      * 添加敏感词到状态转移图
      */
     public static void addWord(String word) {
-        Map<Character, Map> currentDict = sensitiveDict;
-        for (int i = 0; i < word.length(); i++) {
-            char c = word.charAt(i);
-            if (!currentDict.containsKey(c)) {
-                currentDict.put(c, new HashMap<>());
+        readWriteLock.writeLock().lock();
+        try {
+            Map<Character, Map> currentDict = sensitiveDict;
+            for (int i = 0; i < word.length(); i++) {
+                char c = word.charAt(i);
+                if (!currentDict.containsKey(c)) {
+                    currentDict.put(c, new HashMap<>());
+                }
+                currentDict = currentDict.get(c);
             }
-            currentDict = currentDict.get(c);
+            // 标记为终止节点
+            currentDict.put('$', null);
+        } finally {
+            readWriteLock.writeLock().unlock();
         }
-        // 标记为终止节点
-        currentDict.put('$', null);
     }
 
-   /**
+    /**
      * 过滤敏感词
      */
     public static String filter(String text, char replaceChar) {
         char[] c = text.toCharArray();
         int length = text.length();
 
-        for (int i = 0; i < length; i++) {
-            Map<Character, Map> currentDict = sensitiveDict;
-            int j =recursion(currentDict,c,length,i);
-            if(j!=-1){
-                for (int k = i; k <= j; k++) {
-                    c[k] = replaceChar;
+        readWriteLock.readLock().lock();
+        try {
+            for (int i = 0; i < length; i++) {
+                Map<Character, Map> currentDict = sensitiveDict;
+                int j = recursion(currentDict, c, length, i);
+                if (j != -1) {
+                    for (int k = i; k <= j; k++) {
+                        c[k] = replaceChar;
+                    }
+                    i = j;
                 }
-                i=j;
             }
+            return new String(c);
+        } finally {
+            readWriteLock.readLock().unlock();
         }
-        return new String(c);
     }
 
     public static int recursion(Map<Character, Map> currentDict, char[] c, int length, int currentIndex){
@@ -73,6 +84,7 @@ public class DFAFilter {
         }
         return -1;
     }
+
 
     /**
      * 持久化状态转移图
