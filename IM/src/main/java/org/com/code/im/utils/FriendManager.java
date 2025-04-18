@@ -38,13 +38,12 @@ public class FriendManager {
     public static boolean checkIfUser1FollowUser2(long userId1, long userId2) {
         //获取user1的关注列表的锁
         ReentrantReadWriteLock lock1 = lockForFollowing.computeIfAbsent(userId1, k -> new ReentrantReadWriteLock());
-
-        synchronized (lock1) {
+        lock1.readLock().lock();
+        try {
             Roaring64NavigableMap following = user1FollowUser2.get(userId1);
-            if (following != null && following.contains(userId2)) {
-                return true;
-            }
-            return false;
+            return following != null && following.contains(userId2);
+        } finally {
+            lock1.readLock().unlock();
         }
     }
 
@@ -76,17 +75,16 @@ public class FriendManager {
         ReentrantReadWriteLock firstLock = lock1.hashCode() < lock2.hashCode() ? lock1 : lock2;
         ReentrantReadWriteLock secondLock = lock1.hashCode() < lock2.hashCode() ? lock2 : lock1;
 
-        synchronized (firstLock) {
-            synchronized (secondLock) {
-                try {
-                    // 把user2添加到user1的关注列表中
-                    user1FollowUser2.computeIfAbsent(userId1, k -> new Roaring64NavigableMap()).add(userId2);
-                    // 把user1添加到user2的粉丝列表中
-                    user1FollowedByUser2.computeIfAbsent(userId2, k -> new Roaring64NavigableMap()).add(userId1);
-                } catch (Exception e) {
-                    System.out.println("Error while updating follow relationships: " + e.getMessage());
-                }
-            }
+        firstLock.writeLock().lock();
+        secondLock.writeLock().lock();
+        try {
+            user1FollowUser2.computeIfAbsent(userId1, k -> new Roaring64NavigableMap()).add(userId2);
+            user1FollowedByUser2.computeIfAbsent(userId2, k -> new Roaring64NavigableMap()).add(userId1);
+        } catch (Exception e) {
+            System.out.println("Error while updating follow relationships: " + e.getMessage());
+        } finally {
+            secondLock.writeLock().unlock();
+            firstLock.writeLock().unlock();
         }
     }
 
@@ -105,24 +103,25 @@ public class FriendManager {
         ReentrantReadWriteLock firstLock = lock1.hashCode() < lock2.hashCode() ? lock1 : lock2;
         ReentrantReadWriteLock secondLock = lock1.hashCode() < lock2.hashCode() ? lock2 : lock1;
 
-        synchronized (firstLock) {
-            synchronized (secondLock) {
-                try {
-                    Roaring64NavigableMap following = user1FollowUser2.get(userId1);
-                    //从user1的关注列表中移除user2
-                    if (following != null) {
-                        following.removeLong(userId2);
-                    }
-
-                    //从user2的粉丝列表中移除user1
-                    Roaring64NavigableMap followedBy = user1FollowedByUser2.get(userId2);
-                    if (followedBy != null) {
-                        followedBy.removeLong(userId1);
-                    }
-                } catch (Exception e) {
-                    System.out.println("Error while removing follow relationships: " + e.getMessage());
-                }
+        firstLock.writeLock().lock();
+        secondLock.writeLock().lock();
+        try {
+            Roaring64NavigableMap following = user1FollowUser2.get(userId1);
+            //从user1的关注列表中移除user2
+            if (following != null) {
+                following.removeLong(userId2);
             }
+
+            //从user2的粉丝列表中移除user1
+            Roaring64NavigableMap followedBy = user1FollowedByUser2.get(userId2);
+            if (followedBy != null) {
+                followedBy.removeLong(userId1);
+            }
+        } catch (Exception e) {
+            System.out.println("Error while removing follow relationships: " + e.getMessage());
+        } finally {
+            secondLock.writeLock().unlock();
+            firstLock.writeLock().unlock();
         }
     }
 
@@ -142,21 +141,21 @@ public class FriendManager {
         ReentrantReadWriteLock firstLock = lock1.hashCode() < lock2.hashCode() ? lock1 : lock2;
         ReentrantReadWriteLock secondLock = lock1.hashCode() < lock2.hashCode() ? lock2 : lock1;
 
-        synchronized (firstLock) {
-            synchronized (secondLock) {
-                try {
-                    Roaring64NavigableMap following = user1FollowUser2.get(userId1);
-                    Roaring64NavigableMap followedBy= user1FollowedByUser2.get(userId1);
+        firstLock.readLock().lock();
+        secondLock.readLock().lock();
+        try {
+            Roaring64NavigableMap following = user1FollowUser2.get(userId1);
+            Roaring64NavigableMap followedBy = user1FollowedByUser2.get(userId1);
 
-                    //如果user1关注了user2,并且user1的粉丝列表中也包含user2，则表示user1和user2是好友
-                    if(following != null && followedBy != null)
-                        return following.contains(userId2)&&followedBy.contains(userId2);
-                    return false;
-                } catch (Exception e) {
-                    System.out.println("Error while checking friendship: " + e.getMessage());
-                    return false;
-                }
-            }
+            //如果user1关注了user2,并且user1的粉丝列表中也包含user2，则表示user1和user2是好友
+            return following != null && followedBy != null
+                && following.contains(userId2) && followedBy.contains(userId2);
+        } catch (Exception e) {
+            System.out.println("Error while checking friendship: " + e.getMessage());
+            return false;
+        } finally {
+            secondLock.readLock().unlock();
+            firstLock.readLock().unlock();
         }
     }
 
@@ -170,28 +169,29 @@ public class FriendManager {
         ReentrantReadWriteLock firstLock = lock1.hashCode() < lock2.hashCode() ? lock1 : lock2;
         ReentrantReadWriteLock secondLock = lock1.hashCode() < lock2.hashCode() ? lock2 : lock1;
 
-        synchronized (firstLock) {
-            synchronized (secondLock) {
-                try {
-                    Roaring64NavigableMap following = user1FollowUser2.get(userId);
-                    Roaring64NavigableMap followedBy= user1FollowedByUser2.get(userId);
+        firstLock.readLock().lock();
+        secondLock.readLock().lock();
+        try {
+            Roaring64NavigableMap following = user1FollowUser2.get(userId);
+            Roaring64NavigableMap followedBy = user1FollowedByUser2.get(userId);
 
-                    if(following != null && followedBy != null){
-                        // 创建一个临时的 Roaring64NavigableMap 来存储交集结果
-                        Roaring64NavigableMap friends = new Roaring64NavigableMap();
-                        //通过并集复制following的内容
-                        friends.or(following);
-                        //用friends和followedBy进行交集操作
-                        friends.and(followedBy);
-                        //把结果转换成List并返回
-                        return friends.toArray();
-                    }
-                    return null;
-                } catch (Exception e) {
-                    System.out.println("Error while checking friendship: " + e.getMessage());
-                    return null;
-                }
+            if (following != null && followedBy != null) {
+                // 创建一个临时的 Roaring64NavigableMap 来存储交集结果
+                Roaring64NavigableMap friends = new Roaring64NavigableMap();
+                //通过并集复制following的内容
+                friends.or(following);
+                //用friends和followedBy进行交集操作
+                friends.and(followedBy);
+                //把结果转换成List并返回
+                return friends.toArray();
             }
+            return null;
+        } catch (Exception e) {
+            System.out.println("Error while checking friendship: " + e.getMessage());
+            return null;
+        } finally {
+            secondLock.readLock().unlock();
+            firstLock.readLock().unlock();
         }
     }
 
@@ -221,22 +221,25 @@ public class FriendManager {
             ReentrantReadWriteLock firstLock = lock1.hashCode() < lock2.hashCode() ? lock1 : lock2;
             ReentrantReadWriteLock secondLock = lock1.hashCode() < lock2.hashCode() ? lock2 : lock1;
 
-            synchronized (firstLock) {
-                synchronized (secondLock) {
-                    Roaring64NavigableMap bitmap = userMap.get(userId);
-                    if (bitmap != null) {
-                        try {
-                            String filePath = Paths.get(BASE_FILE_PATH, "user_" + userId + suffix).toString();
-                            try (DataOutputStream fos = new DataOutputStream(new FileOutputStream(filePath))) {
-                                bitmap.serialize(fos);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        } catch (Exception e) {
-                            System.out.println("Failed to save user " + userId + " data: " + e.getMessage());
+            firstLock.writeLock().lock();
+            secondLock.writeLock().lock();
+            try {
+                Roaring64NavigableMap bitmap = userMap.get(userId);
+                if (bitmap != null) {
+                    try {
+                        String filePath = Paths.get(BASE_FILE_PATH, "user_" + userId + suffix).toString();
+                        try (DataOutputStream fos = new DataOutputStream(new FileOutputStream(filePath))) {
+                            bitmap.serialize(fos);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
+                    } catch (Exception e) {
+                        System.out.println("Failed to save user " + userId + " data: " + e.getMessage());
                     }
                 }
+            } finally {
+                secondLock.writeLock().unlock();
+                firstLock.writeLock().unlock();
             }
         }
     }
