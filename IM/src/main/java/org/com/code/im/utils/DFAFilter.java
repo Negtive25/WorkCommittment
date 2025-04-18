@@ -34,30 +34,44 @@ public class DFAFilter {
         currentDict.put('$', null);
     }
 
-    /**
+   /**
      * 过滤敏感词
      */
     public static String filter(String text, char replaceChar) {
-        char[] result = text.toCharArray();
+        char[] c = text.toCharArray();
         int length = text.length();
 
         for (int i = 0; i < length; i++) {
             Map<Character, Map> currentDict = sensitiveDict;
-            int j = i;
-            while (j < length && currentDict.containsKey(text.charAt(j))) {
-                if(currentDict.containsKey(text.charAt(j)))
-                    currentDict = currentDict.get(text.charAt(j));
-                if (currentDict.containsKey('$')) {
-                    // 匹配到敏感词，替换为指定字符
-                    for (int k = i; k <= j; k++) {
-                        result[k] = replaceChar;
-                    }
-                    break;
+            int j =recursion(currentDict,c,length,i);
+            if(j!=-1){
+                for (int k = i; k <= j; k++) {
+                    c[k] = replaceChar;
                 }
-                j++;
+                i=j;
             }
         }
-        return new String(result);
+        return new String(c);
+    }
+
+    public static int recursion(Map<Character, Map> currentDict, char[] c, int length, int currentIndex){
+
+        if(currentDict.containsKey(c[currentIndex])){
+            if(currentIndex+1<length)
+                return recursion(currentDict.get(c[currentIndex]),c,length,currentIndex+1);
+            else if(currentIndex+1==length){
+                currentDict = currentDict.get(c[currentIndex]);
+                if(currentDict.containsKey('$'))
+                    //此时currentIndex的位置是敏感词结束的位置
+                    return currentIndex;
+                return -1;
+            }
+        }else{
+            if(currentDict.containsKey('$'))
+                //此时currentIndex的位置是敏感词结束的后面一个字符的位置,所以减1
+                return currentIndex-1;
+        }
+        return -1;
     }
 
     /**
