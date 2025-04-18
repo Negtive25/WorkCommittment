@@ -56,7 +56,6 @@ public class BloomFilters {
      */
     @Scheduled(fixedRate = 1,timeUnit = TimeUnit.HOURS)
     public static void updateBloomFilterList() {
-        // acquire write lock for rotating bloom filter list
         lockForUpdateAndIterator.writeLock().lock();
         try {
             bloomFilterList.remove(0);
