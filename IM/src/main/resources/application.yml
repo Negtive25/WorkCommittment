@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/im?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    username: root
+    password: 123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 123456
+
+netty:
+  #指定Netty服务器处理请求的路径前缀或路由。
+  #在这个例子中，所有以/api/chat开头的请求可能会被Netty服务器处理。
+  host: 0.0.0.0
+  port: 8081
+  path: /api/chat
+
+
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.com.code.im.pojo
+
+rocketmq:
+  nameServer: localhost:9876
+  producer:
+    group: message-producer
+  consumer:
+    group1: chat-Consumer
+    group2: groupCreateMsg-Consumer
+    group3: privateSessionCreateMsg-Consumer
+    group4: querySessionList-Consumer
+    group5: commentMsg-Consumer
+
+
+
+
+app:
+  data:
+    geodb-path: /app/resources/GeoLite2-City.mmdb
+    sensitive-dict-path: /app/resources/sensitiveDict
+    bitmap-path: /app/resources/BitmapData
+  jwt:
+    secret: 

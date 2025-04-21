@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.com.code.im.mapper.VideoMapper">
+    
+    <insert id="insertVideo" >
+        insert into videos (
+        <trim suffixOverrides=",">
+            id,userId,userName,title,url,
+            <if test="tags != null">tags,</if>
+            <if test="category != null">category,</if>
+            <if test="description != null">description,</if>
+            duration
+        </trim>
+        )values (
+        <trim suffixOverrides=",">
+            #{id},#{userId},#{userName},#{title},#{url},
+            <if test="tags != null">#{tags},</if>
+            <if test="category != null">#{category},</if>
+            <if test="description != null">#{description},</if>
+            #{duration}
+        </trim>
+        )
+    </insert>
+
+    <!-- 删除视频,结尾故意加上userId是为了防止有人恶意把他人视频删除 -->
+    <delete id="deleteVideo" >
+        delete from videos where id = #{id} and userId = #{userId}
+    </delete>
+
+    <!-- 视频使用的是懒加载,加载的视频列表只有加载视频的部分信息,只有用户真正点击某个视频才会加载完整信息-->
+    <select id="queryVideoDetail" resultType="Videos">
+        select id,userId,userName,title,url,views,likes,commentCount,
+               tags,category,duration,description,createdAt
+        from videos
+        where id = #{id} and status = 'approved'
+    </select>
+
+    <update id="increaseViewCount" >
+        update videos set views = views + 1 where id = #{id} and status = 'approved'
+    </update>
+
+    <!--通过关键词搜索视频-->
+    <select id="searchVideoByKeyWords" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt
+        from videos
+        where match(title,category,description,tags) against(concat(#{keyword}, '*') in boolean mode) and status = 'approved'
+    </select>
+
+    <!-- 通过视频发布时间搜索视频-->
+    <select id="searchVideoByTime" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt
+        from videos
+        <where>
+            <if test="startTime != null">
+                and createdAt >= #{startTime}
+            </if>
+            <if test="endTime != null">
+                and createdAt &lt;= #{endTime}
+            </if>
+            and status = 'approved'
+        </where>
+    </select>
+
+    <!-- 获取最新的视频，最多100条-->
+    <select id="selectLatestVideo" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt
+        from videos
+        where  status = 'approved'
+        order by createdAt desc limit 100
+    </select>
+
+    <!-- 获取播放量最高的视频，最多100条-->
+    <select id="selectMostViewedVideo" resultType="Videos">
+        select id, userId, userName, title, views, likes,
+        category, duration, createdAt
+        from videos
+        where status = 'approved'
+        order by views desc limit 100
+    </select>
+
+    <select id="querySelfVideoDetail" resultType="Videos">
+        select id,userId,userName,title,url,views,likes,commentCount,
+               tags,category,duration,description,createdAt,status,reviewNotes
+        from videos
+        where userId = #{userId} and id = #{id}
+    </select>
+
+    <!-- 这是给普通账号查询自己等待审核的视频-->
+    <select id="selectSelfVideoWaitToReview" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+              category,duration,createdAt,status,reviewNotes
+        from videos
+        where userId=#{userId} and status = 'waitToReview'
+    </select>
+
+    <!-- 这是给普通账号查询自己的已经过审的视频-->
+    <select id="selectSelfApprovedVideo" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt,status,reviewNotes
+        from videos
+        where userId=#{userId} and status = 'approved'
+    </select>
+
+
+    <!-- 这是给普通账号查询自己的被拒绝过审的视频-->
+    <select id="selectSelfRejectedVideo" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt,status,reviewNotes
+        from videos
+        where userId=#{userId} and status = 'rejected'
+    </select>
+
+    <!-- 这是给管理员账号查询所有未被通过的视频-->
+    <select id="selectAllVideoWaitToReview" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt,status
+        from videos
+        where status = 'waitToReview'
+    </select>
+
+    <!-- 这是给管理员账号修改视频审核状态-->
+    <update id="updateVideoReviewStatus" >
+        update videos set status = #{status},reviewerId = #{reviewerId},reviewNotes = #{reviewNotes}
+        where id = #{id}
+    </update>
+
+    <select id="selectVideoURL" resultType="String">
+        select url from videos where id = #{id}
+    </select>
+
+    <select id="selectVideoListByManyIds" resultType="Videos">
+        select id,userId,userName,title,views,likes,
+               category,duration,createdAt
+        from videos
+        where id in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        and status = 'approved'
+    </select>
+
+    <update id="updateVideoLikes">
+        update videos
+        set likes = case id
+        <foreach collection="list" item="item">
+            when #{item.videoId} then likes + #{item.delta}
+        </foreach>
+        end
+        where id in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.videoId}
+        </foreach>
+        and status = 'approved'
+    </update>
+
+</mapper>
