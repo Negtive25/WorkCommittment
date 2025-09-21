@@ -1,10 +1,10 @@
 package org.com.code.im.pojo;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -12,34 +12,46 @@ import java.util.Map;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class Videos {
+public class Videos extends Likeable{
 
-  private long id;
+  //private long id;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long userId;
+
   private String userName;
   private String title;
   private String url;
   private long views;
-  private long likes;
+
+  //private long likeCount;
+
   private long commentCount;
-  private String tags;
+  private List<String> tags;
   private String category;
   private double duration;
   private String description;
   private LocalDateTime createdAt;
   private String status;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long reviewerId;
+
   private LocalDateTime reviewedAt;
   private String reviewNotes;
+  
+  // 新增autoIncreasementId字段，用于游标分页
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long autoIncreasementId;
 
   public Map toMap() {
-    Map map = new HashMap();
-    map.put("id", id);
-    map.put("userId", userId);
+    Map<String, Object> map = new HashMap();
+    map.put("id", id != null ? id.toString() : null);
+    map.put("userId", String.valueOf(userId));
     map.put("title", title);
     map.put("url", url);
     map.put("views", views);
-    map.put("likes", likes);
+    map.put("likes", likeCount);
     map.put("tags", tags);
     map.put("category", category);
     map.put("duration", duration);

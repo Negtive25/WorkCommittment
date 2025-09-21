@@ -5,9 +5,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public interface BlockService {
-    public void insertBlock(long userId,long targetUserId);
-    public int cancelBlock(long userId,long targetUserId);
-    public List<Blocks> queryBlockedUserList(long userId);
+    void insertBlock(long userId,long targetUserId);
+    int cancelBlock(long userId,long targetUserId);
+    List<Blocks> queryBlockedUserList(long userId);
 }

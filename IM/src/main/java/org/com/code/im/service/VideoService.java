@@ -1,31 +1,29 @@
 package org.com.code.im.service;
 
 import org.com.code.im.pojo.Videos;
-import org.springframework.stereotype.Service;
+import org.com.code.im.pojo.query.VideoPageQuery;
+import org.com.code.im.pojo.dto.VideoPageResponse;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@Service
 public interface VideoService {
-    public void insertVideo(Map map);
-    public void deleteVideo(Map map);
+    Map insertVideo(Map map);
+    int deleteVideo(long id,long userId);
 
-    public Map queryVideoDetail(long id);
-    public List<Videos> searchVideoByKeyWords(String keyWords);
-    public List<Videos> searchVideoByTime(LocalDateTime startTime, LocalDateTime endTime);
+    Map queryVideoDetail(long id);
+    List<Videos> searchVideoByKeyWords(String keyWords, int page, int size);
+    List<Videos> searchVideoByTime(String startTime, String endTime,int page,int size);
 
-    public Map querySelfVideoDetail(Map map);
-    public List<Videos> selectSelfVideoWaitToReview(long userId);
-    public List<Videos> selectSelfApprovedVideo(long userId);
-    public List<Videos> selectSelfRejectedVideo(long userId);
+    Map querySelfVideoDetail(Map map);
+    List<Videos> selectSelfVideoWaitToReview(long userId);
+    List<Videos> selectSelfApprovedVideo(long userId);
+    List<Videos> selectSelfRejectedVideo(long userId);
 
-    public List<Videos> selectAllVideoWaitToReview();
-    public void updateVideoReviewStatus(long id, String status,long reviewerId,String reviewNotes);
-    public String selectVideoURL(long id);
+    List<Videos> selectAllVideoWaitToReview();
 
-    List<Videos> queryLatestVideos();
-
-    List<Videos> queryMostViewedVideos();
+    void updateVideoReviewStatus(long id, String status,long reviewerId,String reviewNotes);
+    
+    VideoPageResponse queryLatestVideosWithCursor(VideoPageQuery videoPageQuery);
+    VideoPageResponse queryMostViewedVideosWithCursor(VideoPageQuery videoPageQuery);
 }

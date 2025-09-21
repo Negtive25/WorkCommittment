@@ -39,11 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException, java.io.IOException {
 
+        long userId;
+
         // 1. 提取请求头中的JWT令牌
         String token = request.getHeader("token");
 
-
-        long userId;
+        // 2. 验证请求头中的JWT令牌
         try {
             /**
              * 如果令牌无效，则抛出异常，filterChain.doFilter把网页请求放行,这里也就是request和response放行

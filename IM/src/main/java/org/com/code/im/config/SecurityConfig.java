@@ -2,15 +2,19 @@ package org.com.code.im.config;
 
 import org.com.code.im.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
+import java.util.Collections;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -21,6 +25,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig{
     @Autowired
     private UserMapper userMapper;
+
+    @Value("${spring.elasticsearch.allowedIpAddress}")
+    private String allowedIpAddress;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -48,6 +55,7 @@ public class SecurityConfig{
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/user/signUp").permitAll()
                         .requestMatchers("/api/user/login").permitAll() // 确保登录页面可访问
+                        .requestMatchers("/api/es/dict/update").access(new WebExpressionAuthorizationManager("hasIpAddress('" + allowedIpAddress + "')"))
                         .requestMatchers("/api/video/selectAllVideoWaitToReview").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/video/updateVideoReviewStatus").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/sensitiveDict/addWord").hasAuthority("ROLE_ADMIN")

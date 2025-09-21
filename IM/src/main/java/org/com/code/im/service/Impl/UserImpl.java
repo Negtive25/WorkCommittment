@@ -1,8 +1,10 @@
 package org.com.code.im.service.Impl;
 
 import jakarta.annotation.Resource;
+import org.com.code.im.ElastiSearch.Service.ESUserService;
 import org.com.code.im.config.DBUserDetailsManager;
 import org.com.code.im.exception.DatabaseException;
+import org.com.code.im.exception.BadRequestException;
 import org.com.code.im.mapper.UserMapper;
 import org.com.code.im.pojo.User;
 import org.com.code.im.service.UserService;
@@ -11,11 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -31,6 +35,9 @@ public class UserImpl implements UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private ESUserService esUserService;
+
     @Override
     @Transactional
     public Long selectUserIdByNameAndPasswordAndReturnUserId(User login) {
@@ -44,13 +51,18 @@ public class UserImpl implements UserService {
 
             //如果认证失败，返回 null
             if(Objects.isNull(authentication)){
-                throw new DatabaseException("账号或密码错误");
+                throw new BadRequestException("账号或密码错误");
             }
 
             //查询数据库获取用户id
             return userMapper.selectUserIdByName(login.getUserName());
         }catch (Exception e) {
-            throw new DatabaseException("账号或密码错误");
+            // 如果是认证相关的异常，抛出BadRequestException
+            if (e instanceof org.springframework.security.core.AuthenticationException) {
+                throw new BadRequestException("账号或密码错误");
+            }
+            // 其他异常仍然抛出BadRequestException，因为通常是用户输入问题
+            throw new BadRequestException("账号或密码错误");
         }
     }
 
@@ -71,7 +83,14 @@ public class UserImpl implements UserService {
         try {
             User userDetails = new User(user.getUserName(), passwordEncoder.encode(user.getPassword()), user.getEmail(), "ROLE_USER");
             dbUserDetailsManager.myCreateUser(userDetails);
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", userDetails.getId());
+            map.put("userName", userDetails.getUserName());
+            map.put("createdAt", LocalDateTime.now());
+            esUserService.createUserIndex(map);
         }catch (Exception e) {
+            e .printStackTrace();
             throw new DatabaseException("数据库插入用户发生错误,可能是用户名重复");
         }
     }
@@ -89,10 +108,24 @@ public class UserImpl implements UserService {
             map.put("avatar", user.getAvatar());
             map.put("bio", user.getBio());
 
+            esUserService.updateUserIndex(map);
+
             return userMapper.updateUser(map);
         }catch (Exception e) {
             e.printStackTrace();
             throw new DatabaseException("数据库修改用户发生错误");
+        }
+    }
+    @Override
+    @Transactional
+    public List<User> searchUserListByName(String userName, int page, int size) {
+        try {
+            List<Long> ids = esUserService.searchUserByName(userName, page, size);
+            ids.removeIf(id -> id == Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName()));
+            return userMapper.selectUserByManyIds(ids);
+        }catch (Exception e) {
+            e.printStackTrace();
+            throw new DatabaseException("数据库查询用户发生错误");
         }
     }
 }

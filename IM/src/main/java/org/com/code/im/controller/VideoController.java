@@ -1,18 +1,15 @@
 package org.com.code.im.controller;
 
+import org.com.code.im.pojo.query.VideoPageQuery;
+import org.com.code.im.pojo.dto.VideoPageResponse;
+import org.com.code.im.pojo.enums.ContentType;
 import org.com.code.im.responseHandler.ResponseHandler;
-import org.com.code.im.service.FileUploadService;
+import org.com.code.im.service.UserLearningProgressService;
 import org.com.code.im.service.VideoService;
-import org.com.code.im.utils.SnowflakeIdUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,55 +18,8 @@ import java.util.Map;
 public class VideoController {
     @Autowired
     private VideoService videoService;
-    
     @Autowired
-    private FileUploadService fileUploadService;
-
-    @Qualifier("objRedisTemplate")
-    @Autowired
-    private RedisTemplate redisTemplateObj;
-
-    /**
-     * 前端先把视频文件上传到OSS后,获得视频的URL码，再调用此接口，将视频信息保存到数据库中
-     * 调用此接口的时候要记得带上之前上传文件的uploadId参数，后端会根据uploadId从redis中获取视频的时长(单位:分钟)，并保存到数据库中
-     */
-    @PostMapping("/api/video/insertVideo")
-    public ResponseHandler insertVideo(@RequestParam("title") String title,
-                                       @RequestParam(value = "tags", required = false) String tags,
-                                       @RequestParam(value = "category", required = false) String category,
-                                       @RequestParam(value = "description", required = false) String description,
-                                       @RequestParam("uploadId") String uploadId,
-                                       @RequestParam("url") String url) {
-
-        double durationMinutes = (double) redisTemplateObj.opsForHash().get("upload:" + uploadId,"duration");
-        long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
-
-        // 构建插入视频的参数
-        Map<String, Object> videoParams = new HashMap<>();
-        videoParams.put("id", SnowflakeIdUtil.videoIdWorker.nextId());
-        videoParams.put("userId", userId);
-        videoParams.put("title", title);
-        videoParams.put("url", url);
-        videoParams.put("duration", durationMinutes);
-
-        // 添加可选参数
-        if (tags != null && !tags.isEmpty()) {
-            videoParams.put("tags", tags);
-        }
-        if (category != null && !category.isEmpty()) {
-            videoParams.put("category", category);
-        }
-        if (description != null && !description.isEmpty()) {
-            videoParams.put("description", description);
-        }
-
-        // 调用service插入视频记录
-        videoService.insertVideo(videoParams);
-        // 删除redis中保存的上传信息
-        redisTemplateObj.delete("upload:" + uploadId);
-
-        return new ResponseHandler(ResponseHandler.SUCCESS, "视频上传成功");
-    }
+    private UserLearningProgressService userLearningProgressService;
 
     /**
      * 我的设计思路是前端通过调用任何除了/api/video/queryVideoDetail以外的其他接口,
@@ -83,48 +33,33 @@ public class VideoController {
 
     @GetMapping("/api/video/queryVideoDetail")
     public ResponseHandler queryVideoDetail(@RequestParam("id") long id) {
-        Map videoInfo = videoService.queryVideoDetail(id);
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoInfo);
-    }
-
-    /**
-     * 这个接口用于获取视频URL码，然后调用/api/file/delete接口,带上视频URL码和视频id删除视频
-     */
-    @GetMapping("/api/video/getVideoURL")
-    public ResponseHandler getVideoURL(@RequestParam("id") long id) {
-        String url = videoService.selectVideoURL(id);
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", url);
+        Long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+        userLearningProgressService.recordContentView(userId, id, ContentType.VIDEO);
+        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoService.queryVideoDetail(id));
     }
 
 
     @GetMapping("/api/video/searchVideoByKeyWords")
-    public ResponseHandler searchVideoByKeyWords(@RequestParam("keyWords") String keyWords) {
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoService.searchVideoByKeyWords(keyWords));
+    public ResponseHandler searchVideoByKeyWords(
+            @RequestParam("keyWords") String keyWords,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoService.searchVideoByKeyWords(keyWords, page, size));
     }
 
     @GetMapping("/api/video/searchVideoByTime")
-    public ResponseHandler searchVideoByYear(@RequestParam("startTime") String startTime,
-                                            @RequestParam("endTime") String endTime) {
-
-        LocalDateTime startDateTime= null;
-        LocalDateTime endDateTime= null;
-        // 定义日期时间格式化器
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    public ResponseHandler searchVideoByTime(@RequestParam("startTime") String startTime,
+                                            @RequestParam("endTime") String endTime,
+                                            @RequestParam(defaultValue = "0") int page,
+                                            @RequestParam(defaultValue = "10") int size) {
 
         try {
-            // 将字符串转换为LocalDate
-            LocalDate startDate = LocalDate.parse(startTime, formatter);
-            LocalDate endDate = LocalDate.parse(endTime, formatter);
-
-            // 后续需要 LocalDateTime，结合默认时间进行转换
-            startDateTime = startDate.atStartOfDay();
-            endDateTime = endDate.atStartOfDay();
-        }catch (Exception e) {
+            return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功",
+                    videoService.searchVideoByTime(startTime, endTime, page, size));
+        } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseHandler(ResponseHandler.BAD_REQUEST, "日期格式错误");
+            return new ResponseHandler(ResponseHandler.BAD_REQUEST, "日期格式错误，请使用 yyyy-MM-dd 格式，如: 2025-05-14");
         }
-
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoService.searchVideoByTime(startDateTime,endDateTime));
     }
 
     /**
@@ -171,25 +106,53 @@ public class VideoController {
     @PutMapping("/api/video/updateVideoReviewStatus")
     public ResponseHandler updateVideoReviewStatus(@RequestParam("id") long id,
                                                   @RequestParam("status") String status,
-                                                  @RequestParam("reviewNotes") String reviewNotes) {
+                                                  @RequestParam(value = "reviewNotes",required = false) String reviewNotes) {
         long reviewerId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
         videoService.updateVideoReviewStatus(id, status, reviewerId, reviewNotes);
         return new ResponseHandler(ResponseHandler.SUCCESS, "更新成功");
     }
 
     /**
-     * 获取最新的视频列表,最多100条
+     * 获取最新视频列表 - 深度分页版本
+     * 使用游标分页避免深度分页性能问题
      */
-    @GetMapping("/api/video/queryLatestVideos")
-    public ResponseHandler queryLatestVideos() {
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoService.queryLatestVideos());
+    @PostMapping("/api/video/queryLatestVideosWithCursor")
+    public ResponseHandler queryLatestVideosWithCursor(@RequestBody VideoPageQuery videoPageQuery) {
+        try {
+            if (videoPageQuery.getNextPage() == 0) {
+                return new ResponseHandler(ResponseHandler.BAD_REQUEST, "翻页参数无效");
+            }
+
+            VideoPageResponse videoPageResponse = videoService.queryLatestVideosWithCursor(videoPageQuery);
+
+            if (videoPageResponse == null) {
+                return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", "没有更多视频");
+            }
+            return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoPageResponse);
+        } catch (Exception e) {
+            return new ResponseHandler(ResponseHandler.SERVER_ERROR, "查询失败: " + e.getMessage());
+        }
     }
 
     /**
-     * 获取播放量最高的视频列表,最多100条
+     * 获取热门视频列表 - 深度分页版本
+     * 使用游标分页避免深度分页性能问题
      */
-    @GetMapping("/api/video/queryMostViewedVideos")
-    public ResponseHandler queryMostViewedVideos() {
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoService.queryMostViewedVideos());
+    @PostMapping("/api/video/queryMostViewedVideosWithCursor")
+    public ResponseHandler queryMostViewedVideosWithCursor(@RequestBody VideoPageQuery videoPageQuery) {
+        try {
+            if (videoPageQuery.getNextPage() == 0) {
+                return new ResponseHandler(ResponseHandler.BAD_REQUEST, "翻页参数无效");
+            }
+
+            VideoPageResponse videoPageResponse = videoService.queryMostViewedVideosWithCursor(videoPageQuery);
+
+            if (videoPageResponse == null) {
+                return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", "没有更多视频");
+            }
+            return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", videoPageResponse);
+        } catch (Exception e) {
+            return new ResponseHandler(ResponseHandler.SERVER_ERROR, "查询失败: " + e.getMessage());
+        }
     }
 }

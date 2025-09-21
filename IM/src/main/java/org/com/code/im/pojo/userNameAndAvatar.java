@@ -7,7 +7,7 @@ import lombok.*;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class userNameAndAvatar {
+public class UserNameAndAvatar {
     private String userName;
     private String avatar;
 }

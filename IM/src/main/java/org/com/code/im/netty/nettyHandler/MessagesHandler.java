@@ -12,13 +12,13 @@ import org.com.code.im.rocketMq.producer.MsgProducer;
 import org.com.code.im.utils.DFAFilter;
 import org.com.code.im.utils.FriendManager;
 import org.com.code.im.utils.SnowflakeIdUtil;
+import org.com.code.im.utils.TimeConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -99,14 +99,40 @@ public class MessagesHandler extends SimpleChannelInboundHandler<TextWebSocketFr
          * 用户下线
          * 把用户id及其会话的channel从本地的服务器的上下文Map中删除
          * 删除redis中保存的在线用户id
+         * 
          */
-        long userId = (long) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
-        ChannelCrud.removeChannel(userId,ctx);
-        List<Channel> ctxList =  ChannelCrud.getChannel(userId);
-        if(ctxList == null )
-            redisTemplate.opsForHash().delete("online_user", stringUserId);
-
-        super.channelInactive(ctx);
+        Long userId = (Long) ctx.attr(AttributeKey.valueOf("userId")).get();
+        if (userId == null) {
+            // 如果userId为null，说明连接还没有完成认证就断开了，直接返回
+            return;
+        }
+        
+        // 从本地缓存中移除用户的channel
+        ChannelCrud.removeChannel(userId, ctx);
+        
+        // 检查该用户是否还有其他活跃的channel
+        List<Channel> ctxList = ChannelCrud.getChannel(userId);
+        
+        // 如果用户没有任何活跃channel，则从Redis中移除在线状态
+        if(ctxList == null || ctxList.isEmpty()) {
+            /**
+             * 因为在执行如下代码块之前，如果网络异常或者用户强行断开连接，
+             * 那么stringUserId字段可能还未被初始化,此时stringUserId字段为null，
+             * 直接用stringUserId字段作为key删除redis中的在线用户状态会报错
+             * 
+             *  if(evt instanceof WebSocketChannelInitializer.timeToRemoveOfflineMessageHandler){
+             *      // 获取用户id
+             *      userId = (long) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+             *      stringUserId = String.valueOf(userId);
+             *      ....
+             *  }
+             * 
+             * 所以不能依赖stringUserId字段，因为stringUserId字段在连接异常断开时可能还未被初始化
+             * 所以使用userId作为key
+             * 
+             *  */
+            redisTemplate.opsForHash().delete("online_user", String.valueOf(userId));
+        }
     }
 
     @Override
@@ -173,16 +199,12 @@ public class MessagesHandler extends SimpleChannelInboundHandler<TextWebSocketFr
         // 返回ResponseHandler,返回客户端 success和消息的sequenceId表示成功收到且合法
         ctx.writeAndFlush(new TextWebSocketFrame(JSON.toJSONString(new ResponseHandler(ResponseHandler.SUCCESS,"OK",null,messages.getSequenceId()))));
 
-        // 消息的创建毫秒级别的时间戳
-        messages.setTimestamp(System.currentTimeMillis());
-
-        messages.setCreatedAt(LocalDateTime.now());
         // 设置消息的messageId,使用雪花算法生成
         messages.setMessageId(SnowflakeIdUtil.messageIdWorker.nextId());
         //设置消息发送者的id
         messages.setSenderId((Long) ctx.channel().attr(AttributeKey.valueOf("userId")).get());
         //把用户发送的消息发送到消息队列中
-        msgProducer.asyncSendMessage("chat","messages",messages);
+        msgProducer.sendChatMessage(messages);
     }
 
     public String checkMessage(Messages messages){
@@ -209,30 +231,36 @@ public class MessagesHandler extends SimpleChannelInboundHandler<TextWebSocketFr
         //对消息进行审核
         messageReview(messages);
 
+        return messageError;
         /**
-         * 为了保护用户被骚扰，bilibili和抖音在互相关注，或对方回复之前只允许发送一条信息,这里的检查其实就是执行类似的逻辑
-         *
-         * 1. 如果对话双方没有互相关注对方:
-         *    假设 user1 和 user2 建立了最初对话,此时对话值为 0,表示user1和user2都可以发消息给对方,但只能发一条消息
-         *    如果user1发一条消息给user2,此时就会把user1的值改成-1,表示user1被禁言
-         *    如果user2回了一条消息给user1,此时会把user2的值改成-1,表示user2被禁言
-         *    如此循环,达到了对方回复之前只允许发送一条信息的功能
-         *
-         *  2.如果对方互相关注对方: 则双方可以无限发消息
+         * 由于时间原因,前端暂时未完成关注模块,因此我暂时去除此非好友关系在对方回复你之前只能发送1条消息的机制
          */
 
-        //如果这是私人消息，则执行私人消息检查的逻辑
-        if(redisTemplate.opsForHash().hasKey("Session_"+messages.getSessionId(),"private")){
-            if(!checkIfFriendSendMsg(messages)){
-                return messageError+="你们还不是好友,在对方回复你之前你只能发送一条消息,发送失败\n";
-            }
 
-            //如果是群聊消息，则执行群聊消息检查的逻辑，看看发送这条消息的人是否被群管理员禁言
-        }else if(!checkIfNotBeingMuted(messages)){
-            return messageError+="你被群管理员禁言,发送失败\n";
-        }
-
-        return messageError;
+//        /**
+//         * 为了保护用户被骚扰，bilibili和抖音在互相关注，或对方回复之前只允许发送一条信息,这里的检查其实就是执行类似的逻辑
+//         *
+//         * 1. 如果对话双方没有互相关注对方:
+//         *    假设 user1 和 user2 建立了最初对话,此时对话值为 0,表示user1和user2都可以发消息给对方,但只能发一条消息
+//         *    如果user1发一条消息给user2,此时就会把user1的值改成-1,表示user1被禁言
+//         *    如果user2回了一条消息给user1,此时会把user2的值改成-1,表示user2被禁言
+//         *    如此循环,达到了对方回复之前只允许发送一条信息的功能
+//         *
+//         *  2.如果对方互相关注对方: 则双方可以无限发消息
+//         */
+//
+//        //如果这是私人消息，则执行私人消息检查的逻辑
+//        if(redisTemplate.opsForHash().hasKey("Session_"+messages.getSessionId(),"private")){
+//            if(!checkIfFriendSendMsg(messages)){
+//                return messageError+="你们还不是好友,在对方回复你之前你只能发送一条消息,发送失败\n";
+//            }
+//
+//            //如果是群聊消息，则执行群聊消息检查的逻辑，看看发送这条消息的人是否被群管理员禁言
+//        }else if(!checkIfNotBeingMuted(messages)){
+//            return messageError+="你被群管理员禁言,发送失败\n";
+//        }
+//
+//        return messageError;
     }
 
 

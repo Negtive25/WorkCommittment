@@ -4,9 +4,10 @@ import com.aliyun.oss.OSSClient;
 import com.aliyun.oss.model.*;
 import org.apache.tika.io.TikaInputStream;
 import org.com.code.im.exception.BadRequestException;
+import org.com.code.im.exception.DatabaseException;
 import org.com.code.im.exception.OSSException;
 import org.com.code.im.exception.VideoParseException;
-import org.com.code.im.pojo.PartETagDTO;
+import org.com.code.im.pojo.dto.PartETagDTO;
 import org.com.code.im.utils.OSSUtil;
 import org.com.code.im.utils.VideoMetadataExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +25,13 @@ import java.util.stream.Collectors;
 public class FileUploadService {
     @Qualifier("objRedisTemplate")
     @Autowired
-    private RedisTemplate redisTemplate;
+    private RedisTemplate redisTemplateObj;
     @Autowired
     private OSSUtil ossUtil;
 
     // 每段上传文件大小为5MB
     private static final int PART_SIZE = 5 * 1024 * 1024;
+
 
     /**
      * 用于大文件的分段上传
@@ -44,7 +46,7 @@ public class FileUploadService {
          * fileType相当于文件类型，举个例子，image.jpg的文件的type为image，video.mp4的文件的type为video
          * fileExtension相当于文件后缀名,举个例子，image.jpg的文件的jpg
          */
-        String fileExtension = fileName.substring(fileName.lastIndexOf(".")).replace(".", "");
+        String fileExtension = fileName.substring(fileName.lastIndexOf(".")+1);
         if (!ossUtil.checkFileType(fileExtension, fileType)) {
             throw new BadRequestException("文件类型不支持");
         }
@@ -112,8 +114,8 @@ public class FileUploadService {
             uploadInfo.put("duration", 0.0);
 
         // 给上传文件的状态设置24小时过期
-        redisTemplate.opsForHash().putAll(uploadKey, uploadInfo);
-        redisTemplate.expire(uploadKey, 24, TimeUnit.HOURS);
+        redisTemplateObj.opsForHash().putAll(uploadKey, uploadInfo);
+        redisTemplateObj.expire(uploadKey, 24, TimeUnit.HOURS);
         Map<String, Object> map = new HashMap<>();
         map.put("uploadId", uploadId);
         map.put("totalPartCount", totalPartCount);
@@ -124,7 +126,7 @@ public class FileUploadService {
     public void uploadPart(String uploadId, int partNumber, InputStream inputStream) throws Exception {
         //获取分段上传的唯一标识ID和上传信息
         String uploadKey = "upload:" + uploadId;
-        Map<Object, Object> uploadInfo = redisTemplate.opsForHash().entries(uploadKey);
+        Map<Object, Object> uploadInfo = redisTemplateObj.opsForHash().entries(uploadKey);
 
         if (uploadInfo == null || uploadInfo.isEmpty()) {
             throw new OSSException("上传任务不存在或已过期");
@@ -134,7 +136,7 @@ public class FileUploadService {
 
         String filePath = (String) uploadInfo.get("filePath");
         String fileType = (String) uploadInfo.get("fileType");
-        double updatedDuration = (double) uploadInfo.get("duration");
+        double updatedDuration = 0;
         OSSClient ossClient = ossUtil.getOSSClient();
 
         try {
@@ -147,7 +149,9 @@ public class FileUploadService {
             // 如果是视频文件，先用一个输入流计算视频时长
             if (fileType.equals("video")) {
                 try (TikaInputStream durationStream = TikaInputStream.get(bytes)) {
+                    updatedDuration=(double) uploadInfo.get("duration");
                     updatedDuration +=VideoMetadataExtractor.getDuration(durationStream);
+                    uploadInfo.put("duration",updatedDuration);
                 } catch (Exception e) {
                     throw new VideoParseException("视频解析异常,重新再试: ");
                 }
@@ -237,9 +241,8 @@ public class FileUploadService {
             uploadInfo.put("completedParts", completedParts);
             uploadInfo.put("progress", progress);
             uploadInfo.put("status", "上传中");
-            uploadInfo.put("duration",updatedDuration);
 
-            redisTemplate.opsForHash().putAll(uploadKey, uploadInfo);
+            redisTemplateObj.opsForHash().putAll(uploadKey, uploadInfo);
 
         } finally {
             /**
@@ -250,9 +253,9 @@ public class FileUploadService {
         }
     }
 
-    public String completeMultipartUpload(String uploadId) {
+    public Map<Object, Object> completeMultipartUpload(String uploadId) {
         String uploadKey = "upload:" + uploadId;
-        Map<Object, Object> uploadInfo = redisTemplate.opsForHash().entries(uploadKey);
+        Map<Object, Object> uploadInfo = redisTemplateObj.opsForHash().entries(uploadKey);
         if (uploadInfo == null || uploadInfo.isEmpty()) {
             throw new OSSException("上传任务不存在或已过期");
         }
@@ -265,7 +268,6 @@ public class FileUploadService {
             throw new OSSException("上传失败，请重新上传");
         }
         String filePath = (String) uploadInfo.get("filePath");
-        String fileType = (String) uploadInfo.get("fileType");
         OSSClient ossClient = ossUtil.getOSSClient();
 
         try {
@@ -295,9 +297,15 @@ public class FileUploadService {
             
             uploadInfo.put("status", "上传完成");
             uploadInfo.put("progress", 100);
-            redisTemplate.opsForHash().putAll(uploadKey, uploadInfo);
+            String url = ossUtil.getBucketDomain() + "/" + filePath;
+            /**
+             * 把原来的在云端OSS存储的文件路径的filePath替换为最终的可以通过网络访问的url
+             */
+            uploadInfo.put("filePath", url);
+            // 删除redis中保存的上传信息
+            redisTemplateObj.delete("upload:" + uploadId);
 
-            return ossUtil.getBucketDomain() + "/" + filePath;
+            return uploadInfo;
         } finally {
             ossClient.shutdown();
         }
@@ -307,7 +315,7 @@ public class FileUploadService {
     // 取消上传
     public void abortMultipartUpload(String uploadId) {
         String uploadKey = "upload:" + uploadId;
-        Map<Object, Object> uploadInfo = redisTemplate.opsForHash().entries(uploadKey);
+        Map<Object, Object> uploadInfo = redisTemplateObj.opsForHash().entries(uploadKey);
 
         if (uploadInfo == null || uploadInfo.isEmpty()) {
             throw new OSSException("上传任务不存在或已过期");
@@ -327,7 +335,7 @@ public class FileUploadService {
              */
             ossClient.abortMultipartUpload(abortRequest);
 
-            redisTemplate.delete(uploadKey);
+            redisTemplateObj.delete(uploadKey);
 
         } catch (com.aliyun.oss.OSSException e) {
             throw new OSSException("取消分段上传失败: " + e.getMessage());
@@ -339,13 +347,14 @@ public class FileUploadService {
     // 获取上传进度
     public Map getUploadProgress(String uploadId) {
         String uploadKey = "upload:" + uploadId;
-        Map<Object, Object> uploadInfo = redisTemplate.opsForHash().entries(uploadKey);
+        Map<Object, Object> uploadInfo = redisTemplateObj.opsForHash().entries(uploadKey);
 
         if (uploadInfo == null || uploadInfo.isEmpty()) {
-            throw new RuntimeException("上传任务不存在或已过期");
+            throw new DatabaseException("上传任务不存在或已过期");
         }
 
         Map<String, Object> map = new HashMap<>();
+        map.put("fileType",uploadInfo.get("fileType"));
         map.put("status",uploadInfo.get("status"));
         map.put("progress",uploadInfo.get("progress"));
         map.put("totalParts",uploadInfo.get("totalPartCount"));

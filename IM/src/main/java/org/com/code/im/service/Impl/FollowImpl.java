@@ -1,18 +1,18 @@
 package org.com.code.im.service.Impl;
 
 import org.com.code.im.exception.DatabaseException;
-import org.com.code.im.exception.ResourceNotFoundException;
 import org.com.code.im.mapper.FollowMapper;
+import org.com.code.im.mapper.PrivateMemberMapper;
+import org.com.code.im.mapper.SessionMapper;
 import org.com.code.im.mapper.UserMapper;
 import org.com.code.im.pojo.*;
-import org.com.code.im.pojo.FanListPageQuery;
+import org.com.code.im.pojo.query.FanListPageQuery;
 import org.com.code.im.pojo.UserFan;
-import org.com.code.im.pojo.UserFanListResponse;
+import org.com.code.im.pojo.dto.UserFanListResponse;
 import org.com.code.im.pojo.UserFollowing;
 import org.com.code.im.service.FollowService;
 import org.com.code.im.utils.FriendManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +29,10 @@ public class FollowImpl implements FollowService {
     private FollowMapper followMapper;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private PrivateMemberMapper privateMemberMapper;
+    @Autowired
+    private SessionMapper sessionMapper;
 
     @Override
     @Transactional
@@ -47,7 +51,8 @@ public class FollowImpl implements FollowService {
             FriendManager.user1FollowUser2(fanId,userId);
             followMapper.insertFollow(new Follows(userId,fanId,null));
         }catch (Exception e){
-            throw new DatabaseException("未知数据库错误");
+            e.printStackTrace();
+            throw new DatabaseException("关注功能重复插入主键");
         }
     }
 
@@ -149,21 +154,25 @@ public class FollowImpl implements FollowService {
 
     @Override
     public List<UserFollowing> queryFriendList(long userId) {
-        /**
-         * 通过用户的关注列表的位图和用户的粉丝列表的位图,
-         * 两个位图的交集求得该用户的好友列表
-         */
-        long[] friendIdList = FriendManager.getFriendList(userId);
-        if(friendIdList==null)
-            return null;
-        List<Long> ids = Arrays.stream(friendIdList).boxed().collect(Collectors.toList());
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("userId", userId);
-        map.put("friendIdList", ids);
-        try {
-            return userMapper.queryUserListByManyIds(map);
-        }catch (Exception e){
-            throw new DatabaseException("未知数据库错误,查询好友列表失败");
-        }
+       try {
+           /**
+            * 通过用户的关注列表的位图和用户的粉丝列表的位图,
+            * 两个位图的交集求得该用户的好友列表
+            */
+           long[] friendIds = FriendManager.getFriendList(userId);
+           if(friendIds==null||friendIds.length==0)
+               return null;
+           List<Long> friendIdList=Arrays.stream(friendIds).boxed().collect(Collectors.toList());
+           List<UserNameAndAvatar> friendNameAndAvatarList = userMapper.selectNameAndAvatarByIds(friendIdList);
+
+           List<UserFollowing> friendList = new ArrayList<>();
+           for (int i = 0; i < friendIds.length; i++)
+               friendList.add(new UserFollowing(friendIds[i],friendNameAndAvatarList.get(i).getUserName(),friendNameAndAvatarList.get(i).getAvatar()));
+           return friendList;
+       }catch (Exception e){
+           e.printStackTrace();
+           throw new DatabaseException("未知数据库错误,查询好友列表失败");
+       }
+
     }
 }

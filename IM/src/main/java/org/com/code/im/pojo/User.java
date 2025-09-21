@@ -1,5 +1,6 @@
 package org.com.code.im.pojo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import org.com.code.im.utils.SnowflakeIdUtil;
 
@@ -16,7 +17,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class User {
 
-  private long id;
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long id;
+
   private String userName;
   private String password;
   private String email;
@@ -50,8 +53,8 @@ public class User {
   }
 
   public Map toMap() {
-    Map map = new HashMap();
-    map.put("id", id);
+    Map<String, Object> map = new HashMap<>();
+    map.put("id", id != null ? id.toString() : null);
     map.put("userName", userName);
     map.put("email", email);
     map.put("avatar", avatar);

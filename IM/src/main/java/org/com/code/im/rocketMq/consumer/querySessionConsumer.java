@@ -10,6 +10,7 @@ import org.com.code.im.mapper.SessionMapper;
 import org.com.code.im.mapper.UserMapper;
 import org.com.code.im.netty.nettyHandler.ChannelCrud;
 import org.com.code.im.pojo.*;
+import org.com.code.im.pojo.query.GroupMemberQuery;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,9 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@RocketMQMessageListener(topic = "chat",
+@RocketMQMessageListener(topic = "${rocketmq.topics.topic1}",
         consumerGroup = "${rocketmq.consumer.group4}",
-        selectorExpression = "querySession",
+        selectorExpression = "${rocketmq.tags.tag4}",
         messageModel = MessageModel.CLUSTERING,
         /**
          * 设置最大重试次数为0，表示不重试
@@ -81,7 +82,11 @@ public class querySessionConsumer implements RocketMQListener<String> {
                 /**
                  * 再根据sessionListWithUser列表里面的用户的id查询用户名，头像
                  */
-                List<userNameAndAvatar> userList = userMapper.selectNameAndAvatarByIds(ids);
+                List<UserNameAndAvatar> userList = new ArrayList<>();
+                // 检查ids列表是否为空，避免SQL语法错误
+                if (!ids.isEmpty()) {
+                    userList = userMapper.selectNameAndAvatarByIds(ids);
+                }
 
                 /**
                  * 将查询到的用户名，头像加入sessionListWithUser列表中
@@ -98,7 +103,7 @@ public class querySessionConsumer implements RocketMQListener<String> {
 
             }catch (Exception e){
                 e.printStackTrace();
-                ResponseHandler response = new ResponseHandler(ResponseHandler.ERROR,"查询私人会话列表",null);
+                ResponseHandler response = new ResponseHandler(ResponseHandler.SERVER_ERROR,"查询私人会话列表",null);
                 ChannelCrud.sendMessage(messageType.getUserId(),response.toJSONString());
                 throw new DatabaseException("查询私人会话列表");
             }
@@ -114,14 +119,14 @@ public class querySessionConsumer implements RocketMQListener<String> {
 
             }catch (Exception e){
                 e.printStackTrace();
-                ResponseHandler response = new ResponseHandler(ResponseHandler.ERROR,"查询群聊列表",null);
+                ResponseHandler response = new ResponseHandler(ResponseHandler.SERVER_ERROR,"查询群聊列表",null);
                 ChannelCrud.sendMessage(messageType.getUserId(),response.toJSONString());
                 throw new DatabaseException("查询群聊列表");
             }
 
         }else if(messageType.getType().equals("groupMemberList")){
             try {
-                List<GroupMemberQueryHandler> sessionList=null;
+                List<GroupMemberQuery> sessionList=null;
                 sessionList = groupMemberMapper.queryGroupMemberList(messageType.getSessionId());
 
                 ResponseHandler response = new ResponseHandler(ResponseHandler.SUCCESS,"查询群成员列表",sessionList);
@@ -129,7 +134,7 @@ public class querySessionConsumer implements RocketMQListener<String> {
 
             }catch (Exception e){
                 e.printStackTrace();
-                ResponseHandler response = new ResponseHandler(ResponseHandler.ERROR,"查询群成员列表",null);
+                ResponseHandler response = new ResponseHandler(ResponseHandler.SERVER_ERROR,"查询群成员列表",null);
                 ChannelCrud.sendMessage(messageType.getUserId(),response.toJSONString());
                 throw new DatabaseException("查询群成员列表");
             }
@@ -142,7 +147,7 @@ public class querySessionConsumer implements RocketMQListener<String> {
 
             }catch (Exception e){
                 e.printStackTrace();
-                ResponseHandler response = new ResponseHandler(ResponseHandler.ERROR,"查询群信息",null);
+                ResponseHandler response = new ResponseHandler(ResponseHandler.SERVER_ERROR,"查询群信息",null);
                 ChannelCrud.sendMessage(messageType.getUserId(),response.toJSONString());
                 throw new DatabaseException("查询群信息");
             }

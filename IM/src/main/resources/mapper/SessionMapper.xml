@@ -25,7 +25,7 @@
         delete from sessions where sessionId = #{sessionId}
     </delete>
 
-    <select id="selectPrivateSession" resultType="java.lang.Long">
+    <select id="selectPrivateSession" resultType="Long">
         select sessionId from private_members
         where userId1 = #{userId1} and userId2 = #{userId2}
     </select>
@@ -56,5 +56,21 @@
         </trim>
         where sessionId = #{sessionId}
     </update>
+
+    <select id="queryGroupSessionIdList" resultType="Long">
+        select sessionId from group_members
+        where userId = #{userId}
+    </select>
+
+    <!-- 使用UNION ALL代替UNION会更高效，因为UNION会消除重复项，而UNION ALL不会。
+    由于私聊和群聊的共用一个雪花算法的sessionIdWorker,所以sessionId不会重复,
+    所以可以安全使用UNION ALL-->
+    <select id="queryAllSessionIdList" resultType="Long">
+        select sessionId from private_members
+        where userId1 = #{userId} or userId2 = #{userId}
+        UNION ALL
+        select sessionId from group_members
+        where userId = #{userId}
+    </select>
 
 </mapper>

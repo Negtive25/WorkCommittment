@@ -7,37 +7,57 @@ import java.util.List;
 import java.util.Map;
 
 @Mapper
-public interface VideoMapper {
-    public void insertVideo(Map map);
-    public void deleteVideo(Map map);
-    public Videos queryVideoDetail(long id);
-    public void increaseViewCount(long id);
-    public List<Videos> searchVideoByKeyWords(String keyWords);
-    public List<Videos> searchVideoByTime(Map map);
+public interface VideoMapper{
+    void insertVideo(Map map);
 
-    public Videos querySelfVideoDetail(Map map);
-    public List<Videos> selectSelfVideoWaitToReview(long userId);
-    public List<Videos> selectSelfApprovedVideo(long userId);
-    public List<Videos> selectSelfRejectedVideo(long userId);
+    int deleteVideo(long id,long userId);
 
-    public List<Videos> selectAllVideoWaitToReview();
-    public void updateVideoReviewStatus(Map map);
+    int deleteAllVideoLikePfOneVideo(long videoId);
 
-    public String selectVideoURL(long id);
+    int deleteAllCommentOfOneVideo(long videoId);
 
-    public List<Videos> selectVideoListByManyIds(List<Long> ids);
+    Videos queryVideoDetail(long id);
 
-    public void updateVideoLikes(List<Map<String,Long>> mapList);
+    void increaseViewCount(long id);
 
+    Videos querySelfVideoDetail(Map map);
+
+    List<Videos> selectSelfVideoWaitToReview(long userId);
+
+    List<Videos> selectSelfApprovedVideo(long userId);
+
+    List<Videos> selectSelfRejectedVideo(long userId);
+
+    List<Videos> selectAllVideoWaitToReview();
+
+    void updateVideoReviewStatus(Map map);
+
+    String getUrl(long id);
+
+    List<Object> selectVideoListByManyIds(List<Long> ids);
+    
     /**
-     * 获取最新的视频，按创建时间倒序，最多100条
-     * @return 视频列表
+     * 获取视频最小autoIncreasementId，用于初始化分页查询
      */
-    List<Videos> selectLatestVideo();
-
+    Long selectVideoMinAutoIncrementId();
+    
     /**
-     * 获取播放量最高的视频，按观看数倒序，最多100条
-     * @return 视频列表
+     * 最新视频游标分页 - 向后翻页
      */
-    List<Videos> selectMostViewedVideo();
+    List<Videos> queryLatestVideosAndNavigateToNextPageByIdRange(Map map);
+    
+    /**
+     * 最新视频游标分页 - 向前翻页
+     */
+    List<Videos> queryLatestVideosAndNavigateToPreviousPageByIdRange(Map map);
+    
+    /**
+     * 热门视频游标分页 - 向后翻页
+     */
+    List<Videos> queryMostViewedVideosAndNavigateToNextPageByIdRange(Map map);
+    
+    /**
+     * 热门视频游标分页 - 向前翻页
+     */
+    List<Videos> queryMostViewedVideosAndNavigateToPreviousPageByIdRange(Map map);
 }

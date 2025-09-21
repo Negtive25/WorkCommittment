@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Component
 public class GeoIpUtil {
@@ -37,6 +39,11 @@ public class GeoIpUtil {
 
     public static String getIpLocation(String ip) {
         try {
+            // 检查是否为本地地址或私有地址
+            if (isLocalOrPrivateAddress(ip)) {
+                return "本地地址";
+            }
+            
             InetAddress ipAddress = InetAddress.getByName(ip);
             CityResponse response = reader.city(ipAddress);
 
@@ -48,6 +55,50 @@ public class GeoIpUtil {
             e.printStackTrace();
             return "未知归属地";
         }
+    }
+
+    /**
+     * 检查是否为本地地址或私有地址
+     */
+    private static boolean isLocalOrPrivateAddress(String ip) {
+        if (ip == null || ip.isEmpty()) {
+            return true;
+        }
+        
+        // IPv6 localhost
+        if ("0:0:0:0:0:0:0:1".equals(ip) || "::1".equals(ip)) {
+            return true;
+        }
+        
+        // IPv4 localhost
+        if ("127.0.0.1".equals(ip) || "localhost".equals(ip)) {
+            return true;
+        }
+        
+        // 私有IP地址段
+        if (ip.startsWith("192.168.") || 
+            ip.startsWith("10.") || 
+            (ip.startsWith("172.") && isInRange172(ip))) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * 检查是否在172.16.0.0 - 172.31.255.255范围内
+     */
+    private static boolean isInRange172(String ip) {
+        try {
+            String[] parts = ip.split("\\.");
+            if (parts.length >= 2) {
+                int secondOctet = Integer.parseInt(parts[1]);
+                return secondOctet >= 16 && secondOctet <= 31;
+            }
+        } catch (NumberFormatException e) {
+            // 忽略解析错误
+        }
+        return false;
     }
 
     public static String getClientIpAddress(HttpServletRequest request) {

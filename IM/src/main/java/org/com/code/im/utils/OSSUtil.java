@@ -36,7 +36,7 @@ public class OSSUtil {
         // 允许的视频类型
         ALLOWED_EXTENSIONS.put("video", Arrays.asList("mp4", "webm", "mov", "avi"));
         // 允许的文档类型
-        ALLOWED_EXTENSIONS.put("file", Arrays.asList("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"));
+        ALLOWED_EXTENSIONS.put("file", Arrays.asList("txt","md","pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"));
 
         // 文件大小限制 (字节)
         MAX_FILE_SIZES.put("image", 10 * 1024 * 1024L);      // 10MB
@@ -90,9 +90,13 @@ public class OSSUtil {
         OSSClient ossClient= getOSSClient();
         try {
             /**
-             *  filePath: 文件完整路径,文件完整路径中不能包含Bucket名称。
+             *  filePath = "http://sk8erboi.oss-cn-fuzhou.aliyuncs.com/video/20250525/19233392121872384/94c0d50c88524b0494f76ae8112b1bf1-肯德基疯狂星期四.mp4"
+             * BUCKET_DOMAIN = "http://sk8erboi.oss-cn-fuzhou.aliyuncs.com"
+             *
+             * => key = "video/20250525/19233392121872384/94c0d50c88524b0494f76ae8112b1bf1-肯德基疯狂星期四.mp4"
              */
-            ossClient.deleteObject(BUCKET_NAME, filePath);
+            String key = filePath.replace(BUCKET_DOMAIN+"/", "");
+            ossClient.deleteObject(BUCKET_NAME, key);
         } catch (Exception e) {
             ossClient.shutdown();
             e.printStackTrace();

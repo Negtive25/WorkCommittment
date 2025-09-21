@@ -23,4 +23,15 @@
         delete from messages where sessionId = #{sessionId}
     </delete>
 
+    <select id="queryMessagesByTimestamp" resultType="Messages">
+        select messageId,sessionId,senderId,content,messageType,createdAt from messages 
+        where sessionId in
+        <foreach collection="sessionIdList" item="sessionId" open="(" close=")" separator=",">
+            #{sessionId}
+        </foreach>
+        and createdAt &gt; FROM_UNIXTIME(#{earliestMessageTimestamp} / 1000) + INTERVAL ((#{earliestMessageTimestamp} % 1000)*1000) MICROSECOND
+        and createdAt &lt; FROM_UNIXTIME(#{minimumTimeStampScoreOfUnreadMessage} / 1000) + INTERVAL ((#{minimumTimeStampScoreOfUnreadMessage} % 1000)*1000) MICROSECOND
+        order by createdAt asc
+    </select>
+
 </mapper>

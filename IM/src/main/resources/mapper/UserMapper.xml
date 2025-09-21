@@ -58,10 +58,16 @@
     </select>
 
     <select id="queryUserNameByManyIds" resultType="String">
-        select userName from user where id in
-        <foreach collection="list" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
+        select userName from user 
+        <if test="list != null and list.size() > 0">
+            where id in
+            <foreach collection="list" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="list == null or list.size() == 0">
+            where 1=0
+        </if>
     </select>
 
     <select id="selectAvatarById" resultType="String">
@@ -69,23 +75,29 @@
     </select>
 
     <select id="selectNameAndAvatarByIds" resultType="userNameAndAvatar">
-        select userName,avatar from user where id in
-        <foreach collection="list" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
+        select userName,avatar from user 
+        <if test="list != null and list.size() > 0">
+            where id in
+            <foreach collection="list" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="list == null or list.size() == 0">
+            where 1=0
+        </if>
     </select>
 
-    <select id="queryUserListByManyIds" resultType="UserFollowing">
-        select
-        u.id,u.userName,u.avatar,p.sessionId
-        from user u inner join private_members p
-        on
-        (u.id = p.userId1 and p.userId2 = #{userId})
-        or (u.id = p.userId2 and p.userId1 = #{userId})
-        where
-        u.id in
-        <foreach collection="friendIdList" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
+    <select id="selectUserByManyIds"  resultType="User">
+             select id,userName,email,avatar,bio,createdAt,updatedAt from user
+            <if test="list != null and list.size() > 0">
+                where id in
+                <foreach collection="list" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="list == null or list.size() == 0">
+                where 1=0
+            </if>
     </select>
+
 </mapper>

@@ -201,7 +201,7 @@ public class FriendManager {
      * Spring 的 @Scheduled 默认使用一个单线程的任务调度器，这意味着在同一时间只有一个线程会执行被 @Scheduled 标记的方法。
      * 如果定时任务的执行时间超过设定的时间间隔（如 fixedRate 或 fixedDelay），后续的任务会被推迟执行，而不会并发运行。
      */
-    @Scheduled(fixedRate = 3600000)
+    @Scheduled(fixedRate = 10000)
     public void saveAllUsersToDisk() {
         /**
          *  _friendsXX.dat 这里的XX号是占位符,是为了凑成统一长度的文件名,方便加载数据的

@@ -21,15 +21,31 @@ public class Messages {
    *     "messageType":"text"
    * }
    */
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long messageId;
+
   //维护消息顺序性和去重
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long sequenceId;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long sessionId;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long senderId;
+
   private String content;
   //messageType ENUM('text', 'image', 'file') DEFAULT 'text',
   private String messageType;
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone = "GMT+8")
+  /**
+   * 数据库在上海,这个createdAt的时间是插入数据库的createdAt的时间,
+   * 所以我使用ZoneId.of("Asia/Shanghai")来固定这个时区
+   */
   private LocalDateTime createdAt;
+  /**
+   * 这是给前端处理用的时间戳
+   * 因为时间戳（long 类型）不涉及时区问题
+   */
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private long timestamp;
 }

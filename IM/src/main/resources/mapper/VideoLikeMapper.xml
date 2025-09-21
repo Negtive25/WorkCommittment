@@ -30,12 +30,25 @@
     </delete>
 
 
-
     <!-- 查询自己喜欢过哪些视频Id -->
     <select id="queryLikedVideoList" resultType="Long">
         select videoId
         from video_likes
         where userId = #{userId}
     </select>
+
+    <update id="updateVideoLikes">
+        update videos
+        set likeCount = case id
+        <foreach collection="list" item="item">
+            when #{item.videoId} then likeCount + #{item.delta}
+        </foreach>
+        end
+        where id in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.videoId}
+        </foreach>
+        and status = 'approved'
+    </update>
 
 </mapper>

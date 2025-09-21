@@ -1,93 +1,145 @@
 package org.com.code.im.controller;
 
 import org.com.code.im.pojo.VideoComments;
+import org.com.code.im.pojo.query.CommentPageQuery;
+import org.com.code.im.pojo.dto.CommentPageResponse;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.service.VideoCommentService;
-import org.com.code.im.utils.SnowflakeIdUtil;
+import org.com.code.im.utils.DFAFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@RequestMapping("/api/videoComment")
 public class VideoCommentController {
+
     @Autowired
     private VideoCommentService videoCommentService;
 
-    /**
-     * 插入评论
-     * 前端的参数:
-     * videoId: 视频id
-     * content: 评论内容
-     * parentId: 父评论id
-     */
-    @PostMapping("/api/videoComment/insertVideoComment")
-    public ResponseHandler insertVideoComment(@RequestBody VideoComments videoComments){
-        Map map = videoComments.toMap();
-        map.put("id", SnowflakeIdUtil.commentIdWorker.nextId());
-        map.put("userId",Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName()));
+    private Long getCurrentUserId() {
+        return Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+    }
+    String checkIfCommentIsValid(VideoComments addedComment){
+        String errorMessage=null;
+        if(addedComment.getContent()==null||addedComment.getContent().isEmpty())
+            errorMessage="评论内容不能为空";
+        if(addedComment.getContent().length()>500)
+            errorMessage="评论内容不能超过500个字符";
+        if(addedComment.getParentId()!=null&&(addedComment.getReplyTo()==null||addedComment.getReplyTo().isEmpty()))
+            errorMessage="回复评论时，回复人信息不能为空";
+        if(addedComment.getParentId()==null&&addedComment.getReplyTo()!=null)
+            errorMessage="未回复他人评论时，回复人信息必须为空";
 
-        videoCommentService.insertVideoComment(map);
-        return new ResponseHandler(ResponseHandler.SUCCESS,"评论成功",null);
+        return errorMessage;
+    }
+
+    @PostMapping("/addComment")
+    public ResponseHandler addComment(@RequestBody VideoComments addedComment ) {
+        Long userId = getCurrentUserId();
+        String errorMessage = checkIfCommentIsValid(addedComment);
+        if(errorMessage!=null)
+            return new ResponseHandler(HttpStatus.BAD_REQUEST.value(), errorMessage);
+        /**
+         * 评论内容过滤
+         */
+        addedComment.setContent(DFAFilter.filter(addedComment.getContent(),'*'));
+
+        addedComment.setUserId(userId);
+        Map map=videoCommentService.addComment(addedComment);
+        return new ResponseHandler(ResponseHandler.SUCCESS, "添加评论成功",map);
+    }
+
+    @GetMapping("/getCommentById/{commentId}")
+    public ResponseHandler getCommentById(@PathVariable Long commentId) {
+        VideoComments comment = videoCommentService.getCommentById(commentId);
+        if (comment == null) {
+            return new ResponseHandler(ResponseHandler.NOT_FOUND, "找不到该评论");
+        }
+        return new ResponseHandler(ResponseHandler.SUCCESS, "获取评论成功", comment);
+    }
+
+
+    @PutMapping("/updateComment")
+    public ResponseHandler updateComment(@RequestBody VideoComments commentRequest) {
+        Long userId = getCurrentUserId();
+        if(commentRequest.getContent()==null||commentRequest.getContent().isEmpty())
+            return new ResponseHandler(ResponseHandler.BAD_REQUEST,"评论内容不能为空");
+        /**
+         * 评论内容过滤
+         */
+        commentRequest.setContent(DFAFilter.filter(commentRequest.getContent(),'*'));
+
+
+        commentRequest.setUserId(userId);
+        videoCommentService.updateComment(commentRequest);
+        return new ResponseHandler(ResponseHandler.SUCCESS, "评论更新成功");
+    }
+
+    @DeleteMapping("/deleteComment/{commentId}")
+    public ResponseHandler deleteComment(@PathVariable Long commentId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return new ResponseHandler(HttpStatus.UNAUTHORIZED.value(), "请先登录");
+        }
+        videoCommentService.deleteComment(commentId, userId);
+
+        return new ResponseHandler(ResponseHandler.SUCCESS, "删除评论成功");
     }
 
     /**
-     * 删除评论
-     * 前端参数:
-     * id: 评论id
+     * 获取视频评论列表 - 深度分页版本
+     * 使用游标分页避免深度分页性能问题
      */
-    @DeleteMapping("/api/videoComment/deleteVideoComment/{id}")
-    public ResponseHandler deleteVideoComment(@PathVariable long id){
-        long userId=Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
-        Map<String,Long> map = new HashMap();
-        map.put("id",id);
-        map.put("userId",userId);
+    @PostMapping("/getCommentsByVideoIdWithCursor")
+    public ResponseHandler getCommentsByVideoIdWithCursor(@RequestBody CommentPageQuery commentPageQuery) {
+        try {
+            if (commentPageQuery.getNextPage() == 0) {
+                return new ResponseHandler(ResponseHandler.BAD_REQUEST, "翻页参数无效");
+            }
 
-        videoCommentService.deleteVideoComment(map);
-        return new ResponseHandler(ResponseHandler.SUCCESS,"删除评论成功",null);
+            if (commentPageQuery.getVideoId() == null) {
+                return new ResponseHandler(ResponseHandler.BAD_REQUEST, "视频ID不能为空");
+            }
+
+            CommentPageResponse commentPageResponse = videoCommentService.getCommentsByVideoIdWithCursor(commentPageQuery);
+
+            if (commentPageResponse == null) {
+                return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", "没有更多评论");
+            }
+            return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", commentPageResponse);
+        } catch (Exception e) {
+            return new ResponseHandler(ResponseHandler.SERVER_ERROR, "查询失败: " + e.getMessage());
+        }
     }
 
     /**
-     * 更新评论
-     * 前端参数:
-     * id: 评论id
-     * content: 评论内容
+     * 获取评论回复列表 - 深度分页版本
+     * 使用游标分页避免深度分页性能问题
      */
-    @PutMapping("/api/videoComment/updateVideoComment")
-    public ResponseHandler updateVideoComment(@RequestBody VideoComments videoComments){
-        Map<String,Object> map = new HashMap();
-        long userId=Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
-        map.put("id",videoComments.getId());
-        map.put("content",videoComments.getContent());
-        map.put("userId",userId);
+    @PostMapping("/getRepliesByParentIdWithCursor")
+    public ResponseHandler getRepliesByParentIdWithCursor(@RequestBody CommentPageQuery commentPageQuery) {
+        try {
+            if (commentPageQuery.getNextPage() == 0) {
+                return new ResponseHandler(ResponseHandler.BAD_REQUEST, "翻页参数无效");
+            }
 
-        videoCommentService.updateVideoComment(map);
-        return new ResponseHandler(ResponseHandler.SUCCESS,"更新评论成功",null);
+            if (commentPageQuery.getVideoId() == null || commentPageQuery.getParentId() == null) {
+                return new ResponseHandler(ResponseHandler.BAD_REQUEST, "视频ID和父评论ID不能为空");
+            }
+
+            CommentPageResponse commentPageResponse = videoCommentService.getRepliesByParentIdWithCursor(commentPageQuery);
+
+            if (commentPageResponse == null) {
+                return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", "没有更多回复");
+            }
+            return new ResponseHandler(ResponseHandler.SUCCESS, "查询成功", commentPageResponse);
+        } catch (Exception e) {
+            return new ResponseHandler(ResponseHandler.SERVER_ERROR, "查询失败: " + e.getMessage());
+        }
     }
 
-    /**
-     * 查询视频的所有评论
-     * 前端参数:
-     * videoId: 视频id
-     */
-    @GetMapping("/api/videoComment/selectVideoComment/{videoId}")
-    public ResponseHandler selectVideoComment(@PathVariable long videoId){
-        return new ResponseHandler(ResponseHandler.SUCCESS,"查询评论成功",videoCommentService.selectVideoComment(videoId));
-    }
-
-    /**
-     * 查询评论的回复
-     * 前端参数:
-     * videoId: 视频id
-     * parentId: 父评论id
-     */
-    @GetMapping("/api/videoComment/selectReplyComment")
-    public ResponseHandler selectReplyComment(@RequestParam("videoId") long videoId,@RequestParam("parentId") long parentId){
-        Map map = new HashMap();
-        map.put("videoId",videoId);
-        map.put("parentId",parentId);
-        return new ResponseHandler(ResponseHandler.SUCCESS,"查询评论成功",videoCommentService.selectReplyComment(map));
-    }
 }

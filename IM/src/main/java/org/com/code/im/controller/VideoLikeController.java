@@ -1,10 +1,14 @@
 package org.com.code.im.controller;
 
+import org.com.code.im.pojo.Videos;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.service.VideoLikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 public class VideoLikeController {
@@ -31,6 +35,10 @@ public class VideoLikeController {
     public ResponseHandler queryLikedVideoList(@PathVariable int pageNum) {
         long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
 
-        return new ResponseHandler(ResponseHandler.SUCCESS, "查询自己喜欢的视频列表成功", videoLikeService.queryLikedVideoList(userId, pageNum));
+        List<Videos> videoList = videoLikeService.queryLikedVideoList(userId, pageNum);
+        if (videoList==null) {
+            videoList = new ArrayList<>();
+        }
+        return new ResponseHandler(ResponseHandler.SUCCESS, "查询自己喜欢的视频列表成功",videoList);
     }
 }

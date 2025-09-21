@@ -2,6 +2,7 @@ package org.com.code.im.netty.nettyHandler;
 
 
 import com.alibaba.fastjson.JSONObject;
+import io.netty.buffer.Unpooled;
 import org.com.code.im.responseHandler.ResponseHandler;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
@@ -18,8 +19,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
 import java.util.List;
-import java.util.Queue;
 
 
 @Component
@@ -38,9 +39,14 @@ public class WebSocketAuthenticationHandler extends SimpleChannelInboundHandler<
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, HttpObject httpObject) throws Exception {
-        // 获取请求头的token
+        // 获取请求 URI
         HttpRequest request = (HttpRequest) httpObject;
-        String token = request.headers().get("token");
+        String uri = request.uri();
+
+        // 解析 URI 查询参数
+        QueryStringDecoder decoder = new QueryStringDecoder(uri);
+        String token = decoder.parameters().get("token").stream().findFirst().orElse(null);
+
         long userId = 0;
 
         try{
@@ -50,6 +56,12 @@ public class WebSocketAuthenticationHandler extends SimpleChannelInboundHandler<
             ctx.channel().close();
             return;
         }
+
+        // 2. 只保留路径部分（去掉查询参数）
+        String newPath = decoder.path(); // 例如：/api/chat
+
+        FullHttpRequest newRequest = createNewHttpRequest(request, newPath);
+
         /**
          * 用户上线
          * 把上线用户id及其会话的channel添加到上下文Map中
@@ -57,7 +69,7 @@ public class WebSocketAuthenticationHandler extends SimpleChannelInboundHandler<
          */
         String stringUserId=String.valueOf(userId);
 
-        ctx.channel().attr(USER_ID).set(userId);
+        ctx.attr(USER_ID).set(userId);
 
         /**
          * 在用户id与该会话channel绑定后,马上触发一个事件,之后的
@@ -68,16 +80,19 @@ public class WebSocketAuthenticationHandler extends SimpleChannelInboundHandler<
         ChannelCrud.addChannel(userId,ctx);
 
         List<Channel> channelList = ChannelCrud.onlineUser.get(userId);
-        if(channelList.size()>JWTUtils.getMaxOnlineNumber()){
-            Channel channel = channelList.get(0);
-            channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(new ResponseHandler(ResponseHandler.ERROR,"一个账号最多"+JWTUtils.getMaxOnlineNumber()+"台设备同时在线,你已被强制下线!!"))))
+        // 修复：检查是否超出限制，如果超出则移除最早的连接
+        while(channelList.size() > JWTUtils.getMaxOnlineNumber()){
+            Channel oldestChannel = channelList.get(0);
+            
+            // 发送下线通知给被挤下线的用户
+            oldestChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(
+                new ResponseHandler(ResponseHandler.SERVER_ERROR,"一个账号最多"+JWTUtils.getMaxOnlineNumber()+"台设备同时在线,你已被强制下线!!原来Token已失效，必须重新登录!!"))))
                     .addListener(future -> {
-                        if (future.isSuccess()) {
-                            channel.close(); // 消息发送成功后关闭通道
-                        } else {
-                            future.cause().printStackTrace(); // 打印异常信息
-                            channel.close(); // 发送失败后也关闭通道
+                        // 无论发送成功与否都要关闭连接
+                        if (!future.isSuccess()) {
+                            future.cause().printStackTrace();
                         }
+                        oldestChannel.close();
                     });
             channelList.remove(0);
         }
@@ -94,8 +109,8 @@ public class WebSocketAuthenticationHandler extends SimpleChannelInboundHandler<
         //如果token验证成功,则传给下一个管道,代表此次的身份验证成功,可以建立WebSocket连接
 
         //这里一定要再给httpObject引用计数加1,原因如下绿字：
-        ReferenceCountUtil.retain(httpObject);
-        ctx.fireChannelRead(httpObject);
+        ReferenceCountUtil.retain(newRequest);
+        ctx.fireChannelRead(newRequest);
 
         /**
          * 假设你的管道中有两个处理器：
@@ -108,5 +123,58 @@ public class WebSocketAuthenticationHandler extends SimpleChannelInboundHandler<
          * 如果 管道2 是一个 SimpleChannelInboundHandler<U>，并且消息类型与 U 匹配，则 管道2 会在处理完消息后**自动**释放资源。
          * 如果 管道2 不是 SimpleChannelInboundHandler，则需要手动释放资源（例如通过 ReferenceCountUtil.release(msg)）。
          */
+    }
+
+    private static FullHttpRequest createNewHttpRequest(HttpRequest request, String newPath) {
+        /**
+         * 为什么不能直接修改原来的 request
+         * 因为 Netty 的 HttpRequest 是只读对象，是为了线程安全和数据一致性
+         * 正确的做法是 创建新的 HttpRequest 或 FullHttpRequest，设置你想要的 URI，
+         * 并通过 ctx.fireChannelRead() 替换原对象继续向下传递。
+         */
+
+        // 4. 创建新的 HttpRequest 对象
+        FullHttpRequest newRequest;
+
+        // 检查是否有内容需要复制
+        if (request instanceof FullHttpRequest) {
+            FullHttpRequest fullRequest = (FullHttpRequest) request;
+            if (fullRequest.content().isReadable()) {
+                // 有内容的情况
+                newRequest = new DefaultFullHttpRequest(
+                        request.protocolVersion(),
+                        request.method(),
+                        newPath,
+                        fullRequest.content().copy()
+                );
+            } else {
+                // 无内容的情况
+                newRequest = new DefaultFullHttpRequest(
+                        request.protocolVersion(),
+                        request.method(),
+                        newPath,
+                        Unpooled.EMPTY_BUFFER
+                );
+            }
+        } else {
+            // 不是FullHttpRequest的情况
+            newRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    request.method(),
+                    newPath,
+                    Unpooled.EMPTY_BUFFER
+            );
+        }
+
+        // 复制所有原始请求头到新请求
+        request.headers().forEach(entry -> {
+            newRequest.headers().set(entry.getKey(), entry.getValue());
+        });
+
+        // 确保设置正确的Content-Length头
+        if (!(request instanceof FullHttpRequest) || !((FullHttpRequest) request).content().isReadable()) {
+            newRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, 0);
+        }
+        return newRequest;
     }
 }

@@ -1,22 +1,17 @@
 package org.com.code.im.controller;
 
-import org.com.code.im.exception.BadRequestException;
-import org.com.code.im.pojo.FanListPageQuery;
-import org.com.code.im.pojo.UserFanListResponse;
+import org.com.code.im.pojo.query.FanListPageQuery;
+import org.com.code.im.pojo.dto.UserFanListResponse;
 import org.com.code.im.pojo.UserFollowing;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.service.FollowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 这里应用层的接口是同步返回的,web的普通http请求直接获取返回结果
@@ -99,7 +94,7 @@ public class FollowController {
      * 第1部分是粉丝列表,第二部分是fanListPageQuery类
      * 而返回的fanListPageQuery里面的curPageMaxId,curPageMinId最好作为下一次查询的参数,
      */
-    @GetMapping("/api/follow/queryFanList")
+    @PostMapping("/api/follow/queryFanList")
     public ResponseHandler queryFanList(@RequestBody FanListPageQuery fanListPageQuery){
 
         if(fanListPageQuery.getUserId()==0){

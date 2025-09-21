@@ -47,4 +47,11 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
         return new ResponseEntity<>(errorResponse,HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(ElasticSearchException.class)
+    public ResponseEntity<?> handleElasticSearchException(ElasticSearchException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.getMessage());
+        ex.printStackTrace();
+        return new ResponseEntity<>(errorResponse,HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

@@ -13,6 +13,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,10 +30,19 @@ public class UserController {
     @Autowired
     private RedisTemplate redisTemplate;
 
+    @Qualifier("objRedisTemplate")
     @Autowired
-    @Qualifier("strRedisTemplate")
-    RedisTemplate strRedisTemplate;
+    private RedisTemplate objRedisTemplate;
 
+    @GetMapping("/api/user/queryUserAuth")
+    public ResponseHandler queryUserAuth() throws BadRequestException {
+        /**
+         * Auth: [ROLE_USER] , [ROLE_ADMIN]
+         * 用于前端判断当前用户身份的权限,这样前端才能自由显示哪些接口需要显示给用户,哪些需要隐藏
+         */
+        String auth=SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString();
+        return new ResponseHandler(ResponseHandler.SUCCESS, "查询用户权限",auth);
+    }
 
 
     //这里没有用到消息队列
@@ -48,7 +60,9 @@ public class UserController {
 
         User result = userService.selectUserById(id);
         Map map=result.toMap();
-        map.put("IPLocation",strRedisTemplate.opsForHash().get("UserIPLocation",String.valueOf(id)));
+        List<String> list= (List<String>) objRedisTemplate.opsForHash().get("UserIPLocation",String.valueOf(id));
+
+        map.put("IPLocation",list);
         return new ResponseHandler(ResponseHandler.SUCCESS,"查看用户主页信息",map);
     }
 
@@ -66,7 +80,7 @@ public class UserController {
 
         long result = userService.updateUser(user);
         if (result == 0)
-            return new ResponseHandler(ResponseHandler.ERROR,"更新用户","更新失败");
+            return new ResponseHandler(ResponseHandler.SERVER_ERROR,"更新用户","更新失败");
         return new ResponseHandler(ResponseHandler.SUCCESS,"更新用户",result);
     }
 
@@ -104,14 +118,41 @@ public class UserController {
          */
         String ipAddress=GeoIpUtil.getClientIpAddress(request);
         String location=GeoIpUtil.getIpLocation(ipAddress);
-        strRedisTemplate.opsForHash().put("UserIPLocation",String.valueOf(userId),location);
+        List<String> list=null;
+        Object obj=objRedisTemplate.opsForHash().get("UserIPLocation",String.valueOf(userId));
+        if(obj==null){
+            list=new ArrayList<>();
+        }else if(obj instanceof List){
+            list=(List<String>)obj;
 
-        return new ResponseHandler(ResponseHandler.SUCCESS, "登录成功", token);
+            /**
+             * 如果登录设备大于4,最先登录的设备会被移除,ip记录也要被移除
+             */
+            if(list.size()==JWTUtils.getMaxOnlineNumber())
+                list.remove(0);
+        }
+        list.add(location);
+        objRedisTemplate.opsForHash().put("UserIPLocation",String.valueOf(userId),list);
+
+        Map<String,String> map=new HashMap<>();
+        map.put("token",token);
+        map.put("userId",String.valueOf(userId));
+
+        return new ResponseHandler(ResponseHandler.SUCCESS, "登录成功", map);
     }
     //账号登出,直接删除redis中的token,不需要消息队列
     @PostMapping("/api/user/logout")
     public ResponseHandler Logout(@RequestHeader String token){
         JWTUtils.deleteToken(token);
         return new ResponseHandler(ResponseHandler.SUCCESS,"登出成功");
+    }
+
+    @GetMapping("/api/user/searchUserListByName")
+    public ResponseHandler searchUserListByName(@RequestParam String userName,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size) {
+
+        List<User> userList = userService.searchUserListByName(userName, page, size);
+        return new ResponseHandler(ResponseHandler.SUCCESS, "查询用户列表成功", userList);
     }
 }

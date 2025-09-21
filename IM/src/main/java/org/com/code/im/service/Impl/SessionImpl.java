@@ -7,11 +7,14 @@ import org.com.code.im.pojo.*;
 import org.com.code.im.rocketMq.producer.MsgProducer;
 import org.com.code.im.service.SessionService;
 import org.com.code.im.utils.SnowflakeIdUtil;
+import org.com.code.im.utils.TimeConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +28,7 @@ public class SessionImpl implements SessionService {
     UserMapper userMapper;
     @Autowired
     SessionMapper sessionMapper;
+
     @Autowired
     GroupMemberMapper groupMemberMapper;
     @Autowired
@@ -173,7 +177,11 @@ public class SessionImpl implements SessionService {
             GroupMemberIdList.add(Long.valueOf(ownerId));
         try {
             // 查询群组成员的用户名列表
-            GroupMemberNameList = userMapper.queryUserNameByManyIds(GroupMemberIdList);
+            if (!GroupMemberIdList.isEmpty()) {
+                GroupMemberNameList = userMapper.queryUserNameByManyIds(GroupMemberIdList);
+            } else {
+                GroupMemberNameList = new ArrayList<>();
+            }
         } catch (Exception e) {
             throw new DatabaseException("查询群组成员用户名列表失败");
         }
@@ -306,9 +314,8 @@ public class SessionImpl implements SessionService {
         messages.setSenderId(-1);
         messages.setContent(message);
         messages.setMessageType("text");
-        messages.setCreatedAt(LocalDateTime.now());
 
-        msgProducer.asyncSendMessage("chat","messages",messages);
+        msgProducer.sendChatMessage(messages);
     }
 
     /**

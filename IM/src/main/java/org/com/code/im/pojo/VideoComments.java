@@ -1,5 +1,6 @@
 package org.com.code.im.pojo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -13,19 +14,38 @@ import java.util.Map;
 @AllArgsConstructor
 public class VideoComments {
 
-  private long id;
-  private long videoId;
-  private long userId;
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long id;
+  
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long videoId;
+  
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long userId;
+  
+  private String userName;
   private String content;
-  private long parentId;
+  
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long parentId;
+  
+  private String replyTo;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long repliesCount;
+
   private LocalDateTime createdAt;
-  private long repliesCount;
+  
+  // 新增autoIncreasementId字段，用于游标分页
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
+  private Long autoIncreasementId;
 
   public Map toMap() {
     Map map = new HashMap();
-    map.put("videoId", videoId);
+    map.put("videoId", videoId != null ? videoId.toString() : null);
     map.put("content", content);
-    map.put("parentId", parentId);
+    map.put("parentId", parentId != null ? parentId.toString() : null);
+    map.put("replyTo", replyTo);
     return map;
   }
 }

@@ -7,7 +7,8 @@ import java.util.List;
 
 @Mapper
 public interface MessageMapper {
-    public void insertBatchMsg(List<Messages> messages);
-    public List<Messages> queryUnreadMessages(List<Long> unreadMessageIds);
-    public int deleteGroupMessages(long sessionId);
+    void insertBatchMsg(List<Messages> messages);
+    List<Messages> queryUnreadMessages(List<Long> unreadMessageIds);
+    int deleteGroupMessages(long sessionId);
+    List<Messages> queryMessagesByTimestamp(List<Long> sessionIdList,long earliestMessageTimestamp,long minimumTimeStampScoreOfUnreadMessage);
 }

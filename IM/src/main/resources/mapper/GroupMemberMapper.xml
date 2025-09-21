@@ -16,7 +16,7 @@
         </foreach>
     </insert>
 
-    <select id="queryGroupMemberList" resultType="GroupMemberQueryHandler">
+    <select id="queryGroupMemberList" resultType="GroupMemberQuery">
         select g.sessionId,g.userId,g.nickName,g.joinedTime,g.role,u.avatar
         from group_members g inner join user u on g.userId = u.id
         where g.sessionId = #{sessionId}

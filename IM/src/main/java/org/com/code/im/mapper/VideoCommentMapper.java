@@ -8,13 +8,28 @@ import java.util.Map;
 
 @Mapper
 public interface VideoCommentMapper {
-    public void insertVideoComment(Map map);
-    public void deleteVideoComment(Map map);
-    public void updateVideoComment(Map map);
-    public List<VideoComments> selectVideoComment(long videoId);
-    public List<VideoComments> selectReplyComment(Map map);
-    public void increaseVideoCommentCount(long videoId);
-    public void decreaseVideoCommentCount(long videoId);
-    public void increaseReplyCommentCount(long id);
-    public void decreaseReplyCommentCount(long id);
+    int saveComment(Map comment);
+    VideoComments findCommentById(Long id);
+    int updateComment(Map<String, Object> updateMap);
+    int deleteCommentByIdAndUserId(Long id,Long userId);
+    int deleteRepliesByParentId(Long parentId);
+    void increaseCommentCount(long id);
+    void decreaseCommentCount(long id);
+    void increaseVideoCommentsCount(long id);
+    void decreaseVideoCommentsCount(long repliesCount,long id);
+    
+    /**
+     * 获取评论最小autoIncreasementId，用于初始化分页查询
+     */
+    Long selectCommentMinAutoIncrementId(Long videoId, Long parentId);
+    
+    /**
+     * 评论游标分页 - 向后翻页
+     */
+    List<VideoComments> queryCommentsAndNavigateToNextPageByIdRange(Map map);
+    
+    /**
+     * 评论游标分页 - 向前翻页
+     */
+    List<VideoComments> queryCommentsAndNavigateToPreviousPageByIdRange(Map map);
 }

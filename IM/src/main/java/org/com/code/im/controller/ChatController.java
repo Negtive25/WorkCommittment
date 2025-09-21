@@ -1,6 +1,8 @@
 package org.com.code.im.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.com.code.im.responseHandler.ResponseHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -54,8 +56,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ChatController {
 
+    @Value("${app.url}")
+    private String url;
     @GetMapping("/api/chat")
-    public ResponseHandler getWebSocketUrl() {
-        return new ResponseHandler(ResponseHandler.SUCCESS, "建立WebSocket连接URL", "ws://47.122.55.247:8081/api/chat");
+    public ResponseHandler getWebSocketUrl(HttpServletRequest request) {
+        String token = request.getHeader("token");
+        return new ResponseHandler(ResponseHandler.SUCCESS, "前端访问该返回的URL码建立ws连接","ws://"+url+":8081/api/chat?token="+token);
     }
 }

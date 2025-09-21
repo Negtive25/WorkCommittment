@@ -3,7 +3,7 @@ package org.com.code.im.controller;
 import org.com.code.im.exception.BadRequestException;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.pojo.ConsumerMessageType;
-import org.com.code.im.pojo.CreateSessionOrInviteRequest;
+import org.com.code.im.pojo.dto.CreateSessionOrInviteRequest;
 import org.com.code.im.pojo.Sessions;
 import org.com.code.im.rocketMq.producer.MsgProducer;
 import org.com.code.im.service.SessionService;
@@ -102,7 +102,7 @@ public class SessionController {
          */
         createSessionOrInviteRequest.setOwnerId(ownerId);
         createSessionOrInviteRequest.setRequestType("createGroup");
-        msgProducer.asyncSendMessage("chat","group", createSessionOrInviteRequest);
+        msgProducer.sendGroupCreateMessage(createSessionOrInviteRequest);
 
         return new ResponseHandler(ResponseHandler.PROCESSING,"群聊创建中");
     }
@@ -166,7 +166,7 @@ public class SessionController {
 
         createSessionOrInviteRequest.setOwnerId(ownerId);
         createSessionOrInviteRequest.setRequestType("inviteUsersToGroup");
-        msgProducer.asyncSendMessage("chat","group", createSessionOrInviteRequest);
+        msgProducer.sendGroupCreateMessage(createSessionOrInviteRequest);
         
         return new ResponseHandler(ResponseHandler.PROCESSING,"群聊邀请中");
     }
@@ -240,7 +240,7 @@ public class SessionController {
         CreateSessionOrInviteRequest createSessionOrInviteRequest = new CreateSessionOrInviteRequest();
         createSessionOrInviteRequest.setOwnerId(Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName()));
         createSessionOrInviteRequest.setUserIds(new Long[]{targetId});
-        msgProducer.asyncSendMessage("chat","createPrivateConversation", createSessionOrInviteRequest);
+        msgProducer.sendPrivateSessionCreateMessage(createSessionOrInviteRequest);
 
         return new ResponseHandler(ResponseHandler.PROCESSING, "正在建立私聊");
     }
@@ -258,7 +258,7 @@ public class SessionController {
          * ConsumerMessageType的-1表示占位符,没有意义
          */
         ConsumerMessageType messageType = new ConsumerMessageType(sessionId,userId,"groupInfo");
-        msgProducer.asyncSendMessage("chat","querySession", messageType);
+        msgProducer.sendQuerySessionMessage(messageType);
 
         return new ResponseHandler(ResponseHandler.PROCESSING, "正在查询群聊信息");
     }
@@ -270,30 +270,38 @@ public class SessionController {
     @GetMapping("/api/session/queryGroupSessionList")
     public ResponseHandler queryGroupList() throws BadRequestException {
 
-        long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
         /**
-         * 把查询群聊列表的请求发给消息队列，异步查询用户的群聊列表
-         * ConsumerMessageType的-1表示占位符,没有意义
+         * 先验证用户是否登录
+         */
+        long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+
+        /**
+         * 把查询群聊列表请求发送到消息队列,异步查询群聊列表
+         * 返回结果通过websocket发送给客户端
          */
         ConsumerMessageType messageType = new ConsumerMessageType(-1,userId,"groupSessionList");
-        msgProducer.asyncSendMessage("chat","querySession", messageType);
+        msgProducer.sendQuerySessionMessage( messageType);
 
         return new ResponseHandler(ResponseHandler.PROCESSING, "正在查询群聊列表");
     }
 
     /**
      * 异步返回结果
-     * 查询私人会话列表
      */
     @GetMapping("/api/session/queryPrivateSessionList")
     public ResponseHandler queryPrivateSessionList() throws BadRequestException {
 
-        long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
         /**
-         * 把查询私聊列表的请求发给消息队列，异步查询用户的私聊列表
+         * 先验证用户是否登录
+         */
+        long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+
+        /**
+         * 把查询私聊列表请求发送到消息队列,异步查询私聊列表
+         * 返回结果通过websocket发送给客户端
          */
         ConsumerMessageType messageType = new ConsumerMessageType(-1,userId,"privateSessionList");
-        msgProducer.asyncSendMessage("chat","querySession", messageType);
+        msgProducer.sendQuerySessionMessage(messageType);
 
         return new ResponseHandler(ResponseHandler.PROCESSING, "正在查询私聊列表");
     }
@@ -306,12 +314,12 @@ public class SessionController {
     @GetMapping("/api/session/queryGroupMemberList/{sessionId}")
     public ResponseHandler queryGroupMemberList(@PathVariable("sessionId") long sessionId) throws BadRequestException {
 
-        if(sessionId<=0){
-            return new ResponseHandler(ResponseHandler.BAD_REQUEST,"sessionId不能小于等于0");
-        }
+        /**
+         * 先验证用户是否登录
+         */
         long userId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
         ConsumerMessageType messageType = new ConsumerMessageType(sessionId,userId,"groupMemberList");
-        msgProducer.asyncSendMessage("chat","querySession", messageType);
+        msgProducer.sendQuerySessionMessage(messageType);
 
         return new ResponseHandler(ResponseHandler.PROCESSING, "正在查询群聊成员列表");
     }

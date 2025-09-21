@@ -6,6 +6,8 @@ import jakarta.annotation.PostConstruct;
 import org.com.code.im.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -38,7 +40,15 @@ public class JWTUtils {
      * 1. 最先登录的设备的token值被强制从Redis中删除,意味着SpringBoot的网页服务不可用,也不能通过netty的token身份验证建立连接
      * 2. 同时正在连接的websocket channel 会被立马强制关闭
      */
-    private static final long MAX_ONLINE_NUMBER = 4;
+    @Value("${app.maxOnlineNumber}")
+    private long maxOnlineNumber;
+
+    private static long MAX_ONLINE_NUMBER;
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void initialize() {
+        MAX_ONLINE_NUMBER=maxOnlineNumber;
+    }
 
     public JWTUtils(@Qualifier("redisTemplateLong") RedisTemplate<String, Long> redisTemplate) {
         JWTUtils.redisTemplate = redisTemplate;
@@ -82,6 +92,9 @@ public class JWTUtils {
     }
 
     public static Long checkToken(String authToken) {
+        if(authToken==null)
+            throw new ResourceNotFoundException("未携带token");
+
         String[] parts = authToken.split(" ");
         if (parts.length != 2) {
             throw new ResourceNotFoundException("身份验证失败，token格式无效");

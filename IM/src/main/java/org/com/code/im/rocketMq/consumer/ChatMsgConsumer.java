@@ -11,6 +11,7 @@ import org.com.code.im.pojo.Messages;
 import org.com.code.im.responseHandler.ResponseHandler;
 import org.com.code.im.service.MessageService;
 import org.com.code.im.utils.BloomFilters;
+import org.com.code.im.utils.TimeConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
@@ -23,9 +24,9 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 @Component
-@RocketMQMessageListener(topic = "chat",
+@RocketMQMessageListener(topic = "${rocketmq.topics.topic1}",
                         consumerGroup = "${rocketmq.consumer.group1}",
-        selectorExpression = "messages",
+        selectorExpression = "${rocketmq.tags.tag1}",
         messageModel = MessageModel.CLUSTERING)
 public class ChatMsgConsumer implements RocketMQListener<String> {
 
@@ -45,6 +46,13 @@ public class ChatMsgConsumer implements RocketMQListener<String> {
     public void onMessage(String jsonMessage) {
 
         Messages message = JSONObject.parseObject(jsonMessage, Messages.class);
+        /**
+         * 所有群聊和私人会话的消息的创建时间都在ChatMsgConsumer这里创建
+         */
+        // 消息的创建毫秒级别的时间戳
+        message.setTimestamp(System.currentTimeMillis());
+        message.setCreatedAt(TimeConverter.getMilliTime());
+
         ResponseHandler responseHandler = new ResponseHandler(ResponseHandler.SUCCESS, "聊天消息", message);
         /**
          * 布隆过滤器去重，原本存在的消息一定会被判断为存在，但是有概率把原本不存在的消息误判为存在
@@ -69,6 +77,7 @@ public class ChatMsgConsumer implements RocketMQListener<String> {
          * 获取到这个消息对应的会话的所有成员
          */
         Map<String,Long> memberOfSession = redisTemplate.opsForHash().entries("Session_"+message.getSessionId());
+        //获取一个会话的全部成员allUserIds
         List<Long> allUserIds=new ArrayList<>();
         //如果是私聊则需要跳过private key值的遍历
         if(memberOfSession.get("private")!=null){
@@ -88,6 +97,27 @@ public class ChatMsgConsumer implements RocketMQListener<String> {
                 allUserIds.add(id);
             });
         }
+
+        /**
+         * 假设每一个消息在redis中缓存n个小时，则recent_messages_集合存储
+         * 这n小时内userId的全部消息的messageId和对应的messageTimestamp
+         * 等到了n小时后，则删除recent_messages_userId集合，之后再有消息的时候，
+         * 则重新存储recent_messages_userId集合
+         * 
+         * 这是为了历史消息的恢复，每当用户登录账号的时候，获取最早的未读消息的时间戳，
+         * 然后获取这n个小时内，所有早于最早未读消息时间戳的缓存的消息，
+         * 然后再查询mysql，获取存储在mysql中剩余的历史消息，然后就获取了所有历史消息
+         * 
+         * 当然，历史消息和未读消息是分开查询的，先查询未读消息，再查询最早未读消息前m天之内的历史消息
+         * 
+         */
+        for(int i=0;i<allUserIds.size();i++){
+            redisTemplate.opsForZSet().add("recent_messages_"+allUserIds.get(i),message.getMessageId(),message.getTimestamp());
+            if(!redisTemplate.opsForSet().isMember("recent_message_member", allUserIds.get(i))){
+                redisTemplate.opsForSet().add("recent_message_member", allUserIds.get(i));
+            }
+        }
+
         /**
          * 获取到该会话的在线成员的channel,发送消息
          */
@@ -188,6 +218,14 @@ public class ChatMsgConsumer implements RocketMQListener<String> {
             });
             // 清空 Redis 中的消息列表
             stringRedisTemplate.delete("messages");
+            //每个最近n小时的缓存的消息是不是都有对应的发送给谁userId
+            //获取那些人的userId，才能把recent_messages_userId集合清空
+            Set<Long> recentMessageMember = redisTemplate.opsForSet().members("recent_message_member");
+            recentMessageMember.forEach(userId->{
+                redisTemplate.opsForZSet().removeRange("recent_messages_"+userId,0,-1);
+            });
+            redisTemplate.delete("recent_message_member");
+
             // 批量插入消息到数据库
             messagesService.insertBatchMsg(messagesList);
         }

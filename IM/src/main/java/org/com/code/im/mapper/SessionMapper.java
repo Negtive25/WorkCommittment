@@ -15,4 +15,6 @@ public interface SessionMapper {
     public List<PrivateMembers> queryPrivateSessionList(long userId);
     public int deleteGroupSession(long sessionId);
     public int updateGroupInfo(Sessions sessions);
+    public List<Long> queryGroupSessionIdList(long userId);
+    public List<Long> queryAllSessionIdList(long userId);
 }
