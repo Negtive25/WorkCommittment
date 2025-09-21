@@ -29,7 +29,7 @@ public class HeartBeatEventHandler extends ChannelDuplexHandler {
 
                 /**
                  * 发送心跳消息，并刷新缓冲区
-                 * 每一次刷新缓冲区都会把heartbeat的ByteBuf内容情况,同时把heartbeat的引用次数减一
+                 * 每一次刷新缓冲区都会把heartbeat的ByteBuf内容清空,同时把heartbeat的引用次数减一
                  * 所以这里需要调用retain()方法，让heartbeat的引用次数加一,同时往它的BYteBuf中写内容，
                  */
                 ReferenceCountUtil.retain(heartBeat);
