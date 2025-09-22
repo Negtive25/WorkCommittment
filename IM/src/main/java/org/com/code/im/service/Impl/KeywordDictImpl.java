@@ -52,6 +52,8 @@ public class KeywordDictImpl implements KeywordDictService {
     @Override
     public void updateKeywordDict(List<String> newKeywordDict) {
         keywordDict.addAll(newKeywordDict);
+        // 立刻更新Redis中的'lastUpdateTime'为当前系统时间
+        strRedisTemplate.opsForValue().set("lastUpdateTime", String.valueOf(System.currentTimeMillis()));
     }
 
     @Scheduled(fixedRate = 180000)
